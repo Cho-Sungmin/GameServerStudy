@@ -2,6 +2,7 @@
 #define TCP_H
 
 #include <stdexcept>
+#include "Header.h"
 
 
 namespace TCP {
@@ -27,42 +28,43 @@ namespace TCP {
 		}
 	};
 
-	template <typename T>
-	void send_packet( int dest_fd , const T& packet )
+	void send_packet( int dest_fd , const InputByteStream& packet )
 	{
-		int len         = 0                     ;
-		int head_len    = sizeof( packet.head)  ;
-		
+		int len = 0;
+		int head_len = Header::SIZE;
+		const char* buffer = packet.getBuffer();
 
+	
 		while( head_len > 0 ){
-			len         = write( dest_fd , (char*)&packet.head + len , head_len );
-			head_len    -= len;
+			len = write( dest_fd , buffer + len , head_len );
+			head_len -= len;
 		}
 
 		if( head_len < 0 )
 			throw Transmission_Ex();
 
 		len = 0 ;
-		int body_len    = packet.head.len;
+		int body_len = packet.getRemainLength() - Header::SIZE;
+		buffer = packet.getBuffer();
 
 		while( body_len > 0 )
 		{
-			len   		= write( dest_fd , packet.data + len  , body_len );
-			body_len   -= len;
+			len = write( dest_fd , buffer + len  , body_len );
+			body_len -= len;
 		}
 
 		if( body_len != 0 )
 			throw Transmission_Ex();
 	}
 
-	template <typename T>
-	void recv_packet( int src_fd , T* packet )
+	void recv_packet( int src_fd , InputByteStream& packet )
 	{
-		int len         = 0                     ;
-		int head_len    = sizeof( packet->head) ;
+		int len = 0;
+		int head_len = Header::SIZE;
+		char* buffer = packet.getBuffer();
 
 		while( head_len > 0 ){
-			len         = read( src_fd , (char*)&packet->head + len , head_len );
+			len = read( src_fd , packet.getBuffer() + len , head_len );
 
 			if( len == 0 )
 				throw Connection_Ex();
@@ -70,17 +72,20 @@ namespace TCP {
 			head_len    -= len;
 		}
 
-		
-		// case : Header packet dropped //
+		Header header;
+		header.read( packet );
+		buffer = packet.getBuffer();
+
+		//--- CASE : Header of packet is dropped ---//
 		if( head_len < 0 )
 			throw Transmission_Ex();
 
 		len = 0;
-		int body_len    = packet->head.len;
+		int body_len = header.len;
 
 		while( body_len > 0 )
 		{
-			len = read( src_fd , packet->data + len , body_len );
+			len = read( src_fd , buffer + len , body_len );
 
 			if( len == 0 )
 				throw Connection_Ex();
@@ -92,6 +97,6 @@ namespace TCP {
 			throw Transmission_Ex();
 	}
 
-}
+};
 
 #endif

@@ -1,15 +1,15 @@
 #ifndef MYSQL_H
 #define MYSQL_H
 
-#include "string.h"
-#include "Parser.h"
-#include "mysql_connection.h"
-
 #include <cppconn/driver.h>
 #include <cppconn/exception.h>
 #include <cppconn/resultset.h>
 #include <cppconn/statement.h>
 #include <fstream>
+
+#include "string.h"
+#include "Parser.h"
+#include "mysql_connection.h"
 
 using namespace std;
 

@@ -4,7 +4,7 @@
 template <typename T>
 class ServerAdaptor {
 	
-	T	m_server;
+	T m_server;
 
 public:
 

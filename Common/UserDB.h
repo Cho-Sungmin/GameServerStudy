@@ -3,7 +3,7 @@
 
 #include <functional>
 
-#include "Packet.h"
+#include "Header.h"
 #include "MySQL.h"
 #include "UserInfo.h"
 #include "UserRedis.h"
@@ -27,9 +27,7 @@ public:
     }
 
     bool isConn()
-    {
-        return m_isConn;
-    }
+    { return m_isConn; }
 
     void init()
     {
@@ -43,50 +41,48 @@ public:
         m_isConn = false;
     }
 
-    void  getUserData( UserInfo& data )
+    void getUserData( UserInfo& data )
     {
-        string id = data.GetId();
-        string pw = data.GetPw();
+        const string id = data.getId();
+        const string pw = data.getPw();
         executeQuery( "SELECT id , pw , name , age from user_info where id = '" + id + "' and pw = '" + pw + "'" );
 
         if( m_pRes->next() )
         {
-            data.SetId( m_pRes->getString( "id" ) );
-            data.SetPw( m_pRes->getString( "pw" ) );
-            data.SetName( m_pRes->getString( "name" ) );
-            data.m_age    = m_pRes->getInt( "age"  );
+            data.setId( m_pRes->getString( "id" ) );
+            data.setPw( m_pRes->getString( "pw" ) );
+            data.setName( m_pRes->getString( "name" ) );
+            data.setAge( m_pRes->getInt( "age" ) );
 
             cout << "[ SUCC ] 1 result founded..." << endl;
             //return true;
         }
         else
         {
-            //data.SetName( m_pRes->getString( "" ) );
             cout << "[ WARN ] 0 result founded..." << endl;
-            //return false;
         }
     }
 
 public:
     void verifyUserInfo( void* lParam , void* rParam )
     {
-        Packet*         pMsg        = reinterpret_cast<Packet*>( lParam );
-        SessionManager* pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
-        Session&        session     = pSessionMgr->getSessionById( pMsg->head.sessionID );     // To update user information in the session, if it's verified user.
+        InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( lParam );
+        SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
+        Header header; header.read( *pPacket );
+        Session& session = pSessionMgr->getSessionById( header.sessionID );     // To update user information in the session, if it's verified user.
 
         UserInfo& userInfo = session.m_userInfo;
+        userInfo.read( *pPacket );
 
-        Parser::parseUserInfo( session.m_userInfo , pMsg->data , ' ' );
+        header.type = PACKET_TYPE::RES;
+        header.len = userInfo.getLength();
 
-        getUserData( userInfo );
-        pMsg->head.type = PACKET_TYPE::RES;
-
-        if( userInfo.GetName() == "" )
+        if( userInfo.getName() == "" )
         {
-            pMsg->head.func = FUNCTION_CODE::RES_VERIFY_FAIL;
+            header.func = FUNCTION_CODE::RES_VERIFY_FAIL;
         }
         else{
-            pMsg->head.func = FUNCTION_CODE::RES_VERIFY_SUCCESS;
+            header.func = FUNCTION_CODE::RES_VERIFY_SUCCESS;
             m_pRedis->hmsetUserInfo( userInfo );
         }
             

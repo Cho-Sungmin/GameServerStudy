@@ -23,8 +23,8 @@ class UserRedis : public Redis {
     }
 
 public:
-static UserRedis* pInstance;
-    static UserRedis* getInstance()
+static UserRedis *pInstance;
+    static UserRedis *getInstance()
     {
         if( pInstance == nullptr )
             pInstance = new UserRedis();
@@ -55,7 +55,7 @@ static UserRedis* pInstance;
     {
         string result = "[";
     
-        redisReply* pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd ));
+        redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd ));
 
         if( m_pContext->err != 0 )
         {
@@ -87,7 +87,7 @@ static UserRedis* pInstance;
     {
         string result;
     
-        redisReply* pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd ));
+        redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd ));
 
         if( m_pContext->err != 0 )
         {
@@ -135,7 +135,7 @@ static UserRedis* pInstance;
 
     const string lrangeRoomList()
     {
-        const char* cmd = "LRANGE room_list 0 -1";
+        const char *cmd = "LRANGE room_list 0 -1";
         const string result = "{room_list:" + lrangeCommand( cmd ) + "}";
 
         return result;
@@ -146,7 +146,7 @@ static UserRedis* pInstance;
     {
         string result = "";
         
-        redisReply* pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd ));
+        redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd ));
         
         if( pReply == nullptr )
         {
@@ -176,9 +176,9 @@ static UserRedis* pInstance;
     
     bool hmsetCommand( const char* cmd )
     {
-        redisReply* pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd ));
+        redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd ));
        
-        if (pReply->type == REDIS_REPLY_ERROR) 
+        if ( pReply->type == REDIS_REPLY_ERROR ) 
         {
             cout << "Command Error: " << pReply->str << endl;
         }
@@ -196,13 +196,13 @@ static UserRedis* pInstance;
         else
             return false;
     }
+
     bool hmsetNewRoom( const RoomSchema& room )
     {
         const string& id = " " + room.id;
         const string& capacity = " capacity " + to_string( room.capacity );
         const string& members = " presentMembers " + to_string( room.presentMembers );
         const string& title = " title " + room.title;
-
         const string& cmd = "HMSET" + id + capacity + members + title;
 
         bool result = hmsetCommand( cmd.c_str() );
@@ -213,65 +213,63 @@ static UserRedis* pInstance;
         return result;
     }
 
-    const string hmgetRoom( const string& id )
+    void hmgetRoom( RoomSchema& room )
     {
-        list<string> keys = { "capacity:" , "presentMembers:" , "title:" };
-        const string& cmd     = "HMGET " + id + " capacity presentMembers title" ;
-
+        const string& cmd = "HMGET " + room.id + " capacity presentMembers title" ;
         string result = hmgetCommand( cmd.c_str() );
-        
-        list<string> results = Parser::tokenize(result , ',');
 
-        result = "{id:" + id + ",";
-
-        while(!results.empty())
+        if( result == "" )
+            room.id = "";
+        else
         {
-            result += keys.front() + ",";
-            keys.pop_front();
-            result += results.front() + ",";
-            results.pop_front();
+            list<string> resultList = Parser::tokenize( result , ',' );
+            OutputByteStream obstream( result.length() );
+
+            for( auto str : resultList )
+            {
+                obstream.write( str );
+            }
+
+            InputByteStream ibstream( obstream );
+            room.read( ibstream );
         }
-
-        result = "}";
-
-        return result;
     }
 
     void hmsetUserInfo( const UserInfo& data )
     {
-        const string& id = " " + data.GetId();
-        const string& pw = " pw " + data.GetPw();
-        const string& name = " name " + data.GetName();
-        const string& age = " age " + data.m_age;
+        const string& id = " " + data.getId();
+        const string& pw = " pw " + data.getPw();
+        const string& name = " name " + data.getName();
+        const string& age = " age " + data.getAge();
 
         const string& cmd = "HMSET" + id + pw + name + age;
 
         hmsetCommand( cmd.c_str() );
     }
 
-    const string hmgetUserInfo( const UserInfo& data )
+    void hmgetUserInfo( UserInfo& userInfo )
     {
-        list<string> keys = { "pw:" , "name:" , "age:" };
-        const string& id      = data.GetId();
-        const string& cmd     = "HMGET " + id + " pw name age" ;
+        const string& id = userInfo.getId();
+        const string& cmd = "HMGET " + id + " pw name age";
 
-        string result = hmgetCommand( cmd.c_str() );//"id:" + id;
-        
-        list<string> results = Parser::tokenize(result , ',');
+        string result = hmgetCommand( cmd.c_str() );
 
-        result = "{id:" + id;
-
-        while(!results.empty())
+        if( result == "" )
+            userInfo.setId( "" );
+        else
         {
-            result += keys.front() + ",";
-            keys.pop_front();
-            result += results.front() + ",";
-            results.pop_front();
+            list<string> resultList = Parser::tokenize(result , ',');
+
+            OutputByteStream obstream( result.length() );
+
+            for( auto str : resultList )
+            {
+                obstream.write( str , 0 );
+            }
+
+            InputByteStream ibstream( obstream );
+            userInfo.read( ibstream );
         }
-
-        result = "}";
-
-        return result;
     }
 };
 

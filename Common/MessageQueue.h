@@ -5,9 +5,9 @@
 #include <queue>
 #include <stdexcept>
 
-#include "Packet.h"
+#include "Header.h"
 
-
+using namespace std;
 
 class Empty_Ex : public std::exception {
 public:
@@ -18,7 +18,7 @@ public:
 
 class MessageQueue {
 
-	std::queue<Packet> 	queue;
+	queue<InputByteStream> 	queue;
 
 public:
 	
@@ -38,16 +38,16 @@ public:
 			return false;
 	}
 
-	void enqueue( const Packet& data )
+	void enqueue( const InputByteStream& data )
 	{
 		queue.push( data );
 	}
 
-	void dequeue( Packet& source )
+	void dequeue( InputByteStream& data )
 	{
 
 		if( !isEmpty() ) {
-			source = queue.front();
+			data = queue.front();
 			queue.pop();
 		}else
 			throw Empty_Ex();

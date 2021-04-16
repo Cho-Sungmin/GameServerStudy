@@ -1,17 +1,18 @@
 
 #include <time.h>
+
 #include "HB_Timer.h"
-#include "Packet.h"
+#include "Header.h"
 #include "TCP.h"
 
 
 void HB_Timer::handler( int signo , siginfo_t* info , void* uc )
 {
-	HB_Timer* 	timer 	= reinterpret_cast<HB_Timer*>(info->si_value.sival_ptr);
+	HB_Timer* timer = reinterpret_cast<HB_Timer*>( info->si_value.sival_ptr );
 
-	int& 		timeout = timer->m_timeout	;
-	int&		state	= timer->m_state	;
-	int			dest_fd	= timer->m_fd		;
+	int& timeout = timer->m_timeout;
+	int& state = timer->m_state;
+	int	dest_fd	= timer->m_fd;
 
 
 	// Case : TIMEOUT --- assume that the session is disconnected //
@@ -25,7 +26,10 @@ void HB_Timer::handler( int signo , siginfo_t* info , void* uc )
 		
 	}else {
 
-		Packet 	dummy( HB , ANY , 0 , dest_fd  );
+		//--- Create and send dummy packet ---//
+		Header header( PACKET_TYPE::HB , FUNCTION_CODE::ANY , 0 , dest_fd );
+		OutputByteStream dummy( Header::SIZE );
+		dummy.write( dummy );
 
 		try {
 			TCP::send_packet( dest_fd , dummy );

@@ -2,6 +2,7 @@
 #define ROOM_H
 
 #include <list>
+
 #include "Session.h"
 
 using namespace std;
@@ -25,6 +26,25 @@ namespace Room {
         int capacity = 0;
         int presentMembers = 0;
         string title = "";
+
+        int getLength() 
+        { return id.length() + sizeof(int) + sizeof(int) + title.length(); }
+
+        void read( InputByteStream& ibstream )
+        {
+            ibstream.read( id );
+            ibstream.read( capacity );
+            ibstream.read( presentMembers );
+            ibstream.read( title );
+        }
+
+         void write( OutputByteStream& obstream )
+        {
+            obstream.write( id );
+            obstream.write( capacity );
+            obstream.write( presentMembers );
+            obstream.write( title );
+        }
 
     };
 

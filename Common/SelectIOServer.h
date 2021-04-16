@@ -34,9 +34,9 @@ public:
 
 class SelectIOServer : public Server {
 
-	fd_set  m_readfds			;
-    int     m_fdMax		= 0		;
-	int		m_state		= STOP 	;
+	fd_set m_readfds;
+    int m_fdMax	= 0;
+	int	m_state	= STOP;
 
 
 public:
@@ -65,7 +65,7 @@ public:
 
 		// init select_io //
 		FD_SET( m_listenSocket , &m_readfds );
-		m_fdMax  = m_listenSocket+1;
+		m_fdMax = m_listenSocket+1;
 
 	}
 
@@ -80,27 +80,26 @@ public:
 	}
 
 
-	virtual int run( void* lParam=nullptr , void* rParam=nullptr ) override
+	virtual int run( void *lParam=nullptr , void *rParam=nullptr ) override
 	{
 
-		int     addr_len    ;
-		int     result      ;
-		fd_set  tmp_set     ;
-		int*    pClnt_fd    ;
-		int     clnt_fd     ;
+		int addr_len;
+		int result;
+		fd_set tmp_set;
+		int *pClnt_fd;
+		int clnt_fd;
 
-		struct sockaddr_in*     clnt_addr;
-
+		struct sockaddr_in *clnt_addr;
 
 		//--- init values ---//
 
-		m_state 	= WORKING	;
+		m_state = WORKING;
 
-		result      = 0         ;
-		tmp_set     = m_readfds ;
-		addr_len    = sizeof( struct sockaddr_in );
-		pClnt_fd    = reinterpret_cast<int*>( lParam )               ;
-		clnt_addr   = reinterpret_cast<struct sockaddr_in*>( rParam );
+		result = 0;
+		tmp_set = m_readfds;
+		addr_len = sizeof( struct sockaddr_in );
+		pClnt_fd = reinterpret_cast<int*>( lParam );
+		clnt_addr = reinterpret_cast<struct sockaddr_in*>( rParam );
 
 		int n = select( m_fdMax , &tmp_set , nullptr , nullptr , nullptr );
 
@@ -132,15 +131,14 @@ public:
 						return INVALID; // failed accept()
 
 					if( clnt_fd >= m_fdMax )
-						m_fdMax  = clnt_fd + 1;
+						m_fdMax = clnt_fd + 1;
 
-
-					*pClnt_fd   = clnt_fd   ;
-					result      = ACCEPT    ;
+					*pClnt_fd = clnt_fd;
+					result = ACCEPT;
 
 				}else {                 // got messages
-					*pClnt_fd   = i     ;
-					result      = INPUT ;
+					*pClnt_fd = i;
+					result = INPUT;
 				}
 
 				break;

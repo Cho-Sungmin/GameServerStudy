@@ -1,10 +1,11 @@
 #ifndef MESSAGE_PROCESSOR_H
 #define MESSAGE_PROCESSOR_H
 
-#include "MessageQueue.h"
-#include "TCP.h"
 #include <map>
 #include <functional>
+
+#include "MessageQueue.h"
+#include "TCP.h"
 #include "Debug.h"
 
 
@@ -14,11 +15,11 @@ LOG* LOG::pInstance;
 
 class MessageProcessor {
 
-	MessageQueue& 							m_msgQ	;
-	map<int,function<void(void*,void*)>> 	m_hMap	;
+	MessageQueue& m_msgQ;
+	map< int , function<void(void*,void*)> > m_hMap;
 
-	const string 	m_logFileName;
-	LOG* 			m_pLog;
+	const string m_logFileName;
+	LOG *m_pLog;
 	
 
 public:
@@ -44,17 +45,20 @@ public:
 
 	void processMSG( void* lParam = nullptr , void* rParam  = nullptr )
 	{
-		Packet msg;
+		InputByteStream msg( Header::SIZE );
+		Header header;
 
 		try {
 
 			m_msgQ.dequeue( msg );
-			auto itr = m_hMap.find( msg.head.func );
+			header.read( msg );
+
+			auto itr = m_hMap.find( header.func );
 
 			if( itr != m_hMap.end() )
 				itr->second( &msg , lParam );
 
-			TCP::send_packet<Packet>( msg.head.sessionID , msg );
+			TCP::send_packet( header.sessionID , msg );
 			m_pLog->writeLOG( msg , LOG::TYPE::SEND );
 		}
 		catch( Empty_Ex e ) {
@@ -64,7 +68,6 @@ public:
 			cout << e.what() << endl;
 		}
 
-		
 	}
 
 };

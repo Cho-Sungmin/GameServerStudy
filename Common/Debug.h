@@ -5,7 +5,7 @@
 #include <time.h>
 #include <fstream>
 
-#include "Packet.h"
+#include "Header.h"
 
 
 using namespace std;
@@ -42,7 +42,7 @@ public:
     }
 
 
-    void printLOG( const Packet& packet , int type )
+    void printLOG( InputByteStream& packet , int type )
     {
         string type_str = "";
 
@@ -61,7 +61,7 @@ public:
         cout << getLog( packet ) << endl;
     }
 
-    void writeLOG( const Packet& packet , int type )
+    void writeLOG( InputByteStream& packet , int type )
     {
         string type_str = "";
 
@@ -89,7 +89,7 @@ public:
     }
 
 private:
-    string getHeaderString( const HEAD& header )
+    string getHeaderString( const Header& header )
     {
         const string type_str = getTypeString( header.type );
         const string func_str = getFuncString( header.func );
@@ -104,10 +104,12 @@ private:
         return result;
     }
 
-    const string getLog( const Packet& packet )
+    const string getLog( InputByteStream& packet )
     {
-        string header_str = getHeaderString( packet.head );
-        string data_str = packet.data;
+        Header header;
+        header.read( packet );
+        string header_str = getHeaderString( header );
+        string data_str = packet.getBuffer();
 
         return header_str + data_str;
     }

@@ -8,36 +8,35 @@
 
 class Session {
 
-	int	m_socket	= -1;
+	int	m_socket = -1;
 
 public:
 
-	UserInfo	m_userInfo	;
-	HB_Timer* 	m_pHBTimer 	= nullptr	;
+	UserInfo m_userInfo	;
+	HB_Timer *m_pHBTimer = nullptr;
 
 	//--- Constructor ---//
 
-	Session()	= default;
+	Session() = default;
 
 	Session( int socket )
 	{
-		//m_id		= id	;
-		m_socket	= socket;
+		m_socket = socket;
 	}
 
 	Session( const Session& session )
 	{
-		m_socket 		= session.m_socket		;
-		m_userInfo		= session.m_userInfo	;
+		m_socket = session.m_socket;
+		m_userInfo = session.m_userInfo;
 	}
 
 	Session( Session&& session )
 	{
 		std::cout << "Move_Constructor" << std::endl;
 
-		m_socket 	= session.m_socket		;
-		m_userInfo	= session.m_userInfo	;
-		m_pHBTimer	= session.m_pHBTimer	;
+		m_socket = session.m_socket;
+		m_userInfo = session.m_userInfo;
+		m_pHBTimer = session.m_pHBTimer;
 
 		session.m_pHBTimer = nullptr;
 	}
@@ -61,13 +60,13 @@ public:
 
 	void init( )
 	{
-		m_pHBTimer	= new HB_Timer( m_socket );
+		m_pHBTimer = new HB_Timer( m_socket );
 		m_pHBTimer->awake(); 
 	}
 
 	void init( int sec , int nsec )
 	{
-		m_pHBTimer	= new HB_Timer( m_socket , sec , nsec );
+		m_pHBTimer = new HB_Timer( m_socket , sec , nsec );
 		m_pHBTimer->awake(); 
 	}
 
@@ -81,8 +80,8 @@ public:
 		
 	void operator=( const Session& session )
 	{
-		m_socket    = session.m_socket  	;
-		m_userInfo	= session.m_userInfo	;
+		m_socket = session.m_socket;
+		m_userInfo = session.m_userInfo;
 	}
 
 };

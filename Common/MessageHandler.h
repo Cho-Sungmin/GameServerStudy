@@ -1,14 +1,15 @@
 #ifndef MESSAGE_HANDLER_H
 #define MESSAGE_HANDLER_H
 
+#include <map>
+#include <functional>
 
-#include "Packet.h"
+#include "TCP.h"
+#include "Header.h"
 #include "MessageQueue.h"
 #include "UserInfo.h"
-#include <map>
 #include "Parser.h"
 #include "UserRedis.h"
-#include <functional>
 #include "Debug.h"
 
 
@@ -45,25 +46,31 @@ public:
 		sessionMgr.validate( clntSocket );
 
 		// Enqueue welcome MSG //
-		Packet 	welcomePacket( PACKET_TYPE::NOTI , FUNCTION_CODE::NONE , welcomeMSG.length() , clntSocket , welcomeMSG.c_str() );
-		m_msgQ.enqueue( welcomePacket );
+		Header header( PACKET_TYPE::NOTI , FUNCTION_CODE::NONE , welcomeMSG.length() , clntSocket );
+		OutputByteStream packet( header.len );
+		header.write( packet );
+		packet.write( welcomeMSG );
+		
+		m_msgQ.enqueue( packet );
 
 	}
 
 	void inputHandler( int clntSocket )
 	{
-		Packet msg;
+		InputByteStream msg( Header::SIZE );
+		Header header;
 
 		try {
-			//*** TODO: Verify user informations ---//
+			//--- Verify user informations ---//
 
 
-			TCP::recv_packet<Packet>( clntSocket , &msg );
+			TCP::recv_packet( clntSocket , msg );
 			m_pLog->writeLOG( msg , LOG::TYPE::RECV );
+			header.read( msg );
 
-			msg.head.sessionID = clntSocket;
+			header.sessionID = clntSocket;
 
-			switch( msg.head.type ) {
+			switch( header.type ) {
 			
 				case PACKET_TYPE::HB		: //--- TYPE : HB ---//
 					onHeartbeat();
@@ -104,7 +111,7 @@ public:
 		//std::cout << "<<< [HB]  -^-v-^-" << std::endl;		
 	}
 
-	void onRequest( const Packet& msg )
+	void onRequest( const InputByteStream& msg )
 	{
 		m_msgQ.enqueue( msg );
 	}
@@ -121,47 +128,59 @@ public:
 
 	void resEnterRoom( void* lParam , void* rParam )
     {
-        Packet* pMsg = reinterpret_cast<Packet*>( lParam );
-		SessionManager* pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
-        Session& session = pSessionMgr->getSessionById( pMsg->head.sessionID );     // To update user information in the session, if it's verified user.
+        InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( lParam );
+		SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
+		Header header;
+		header.read( *pPacket );
+        Session& session = pSessionMgr->getSessionById( header.sessionID );     // To update user information in the session, if it's verified user.
 
 		//--- Extract userInfo from message ---//
-        UserInfo data;      // User information from REQ_MSG.
-        Parser::parseUserInfo( data , pMsg->data , ' ' );
+        UserInfo userInfo;      // User information from REQ_MSG.
+		userInfo.read( *pPacket );
         
 		//--- Result from redis HMGET command ---//
-        const string result = UserRedis::getInstance()->hmgetUserInfo( data );
+        UserRedis::getInstance()->hmgetUserInfo( userInfo );
 
 		//--- Set response packet ---//
-        pMsg->head.type = PACKET_TYPE::RES;
-        pMsg->head.len = result.length();
+        header.type = PACKET_TYPE::RES;
+        header.len = userInfo.getLength();
 
         //--- CASE : The request is VALID ---//
-        if( result != "NULL" )
+        if( userInfo.getId() != "" )
         {
             //--- Update session data ---//
-            Parser::parseUserInfo( session.m_userInfo , result.c_str() , ' ' );
-            session.m_userInfo.SetPw( "" );
+            session.m_userInfo = userInfo;
+            session.m_userInfo.setPw( "" );
 
-            pMsg->head.func = FUNCTION_CODE::RES_ENTER_LOBBY_SUCCESS;
+            header.func = FUNCTION_CODE::RES_ENTER_LOBBY_SUCCESS;
         }
         //--- CASE : The request is INVALID ---//
         else
         {
-            pMsg->head.func = FUNCTION_CODE::RES_ENTER_LOBBY_FAIL;
+            header.func = FUNCTION_CODE::RES_ENTER_LOBBY_FAIL;
         }
     }
 
 	void resRoomList( void* lParam , void* rParam )
     {
-        Packet* pMsg = reinterpret_cast<Packet*>( lParam );
-		SessionManager* pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
-        Session& session = pSessionMgr->getSessionById( pMsg->head.sessionID );     // To update user information in the session, if it's verified user.
+        InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( lParam );
+		SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
+		Header header;
+		header.read( *pPacket );
+	    Session& session = pSessionMgr->getSessionById( header.sessionID );     // To update user information in the session, if it's verified user.
         
 		//--- Result from redis LRANGE command ---//
         const string& result = UserRedis::getInstance()->lrangeRoomList();
 
 		//--- Set response packet ---//
+		OutputByteStream resPacket( Header::SIZE );
+
+		//--- Set header for response message ---//
+		header.type = PACKET_TYPE::RES;
+		header.len = result.length();
+
+		//*** TODO: Parse result string to room information ***//
+
 		pMsg->setPacket( PACKET_TYPE::RES , 0 , result.length() , pMsg->head.sessionID , result.c_str() );
 
         //--- CASE : The request is VALID ---//
@@ -178,15 +197,17 @@ public:
 
 	void resJoinGame( void* lParam , void* rParam )
 	{
-		Packet* pMsg = reinterpret_cast<Packet*>( lParam );
-		SessionManager* pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
+		InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( lParam );
+		SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
+		Header header;
+		header.read( *pPacket );
 
 		//--- Extract userInfo from message ---//
-        UserInfo data;      // User information from REQ_MSG.
-        Parser::parseUserInfo( data , pMsg->data , ' ' );
+        UserInfo userInfo;      // User information from REQ_MSG.
+        userInfo.read( *pPacket );
         
 		//--- Result from redis HMGET command ---//
-		const string& result = UserRedis::getInstance()->hmgetUserInfo( data );
+		UserRedis::getInstance()->hmgetUserInfo( userInfo );
 
 		// *** TODO : 해당 Room의 세션포인터 세팅 ---//
 
@@ -194,18 +215,20 @@ public:
 	}
 	void resMakeRoom( void* lParam , void* rParam )
 	{
-		Packet* pMsg = reinterpret_cast<Packet*>( lParam );
-
-		pMsg->head.type = PACKET_TYPE::RES;
-		pMsg->head.len = 0;
+		InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( lParam );
+		Header header;
+		header.read( *pPacket );
+		
+		header.type = PACKET_TYPE::RES;
+		header.len = 0;
 		
 		RoomSchema room;
-		parseRoomInfo( room , pMsg->data , ',' );
+		room.read( *pPacket );
 
 		string result = "";
 
 		if( UserRedis::getInstance()->hmsetNewRoom( room ) == true )
-			result = UserRedis::getInstance()->hmgetRoom( room.id );
+			UserRedis::getInstance()->hmgetRoom( room );
 
 		//--- Set response packet ---//
 		pMsg->setPacket( PACKET_TYPE::RES , FUNCTION_CODE::RES_MAKE_ROOM_SUCCESS , result.length() , pMsg->head.sessionID , result.c_str() );

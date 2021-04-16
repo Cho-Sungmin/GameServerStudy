@@ -8,47 +8,67 @@
 using namespace std;
 
 class UserInfo {
-    char  m_id    [ 12 ] = "";
-    char  m_pw    [ 12 ] = "";
+    string id = "";
+    string pw = "";
+    string name = "";
+    uint8_t age = 0;
 
 public:
-    char  m_name  [ 12 ] = "";
-    int   m_age = 0;
-
-
+    
     //--- Constructor ---//
 
     UserInfo() = default;
-    
 
+    void read( InputByteStream& ibstream )
+    {
+        ibstream.read( id );
+        ibstream.read( pw );
+        ibstream.read( name );
+        ibstream.read( age );
+    }
+
+    void write( OutputByteStream& obstream )
+    {
+        obstream.write( id );
+        obstream.write( pw );
+        obstream.write( name );
+        obstream.write( age );
+    }
+
+
+    int getLength() const 
+    { 
+        return  id.length() + 
+                pw.length() + 
+                name.length() +
+                sizeof(uint8_t);
+    }
+    
     //--- Getter/Setter ---//
 
-    const string GetId() const
-    {
-        return m_id;
-    }
-    const string GetPw() const
-    {
-        return m_pw;
-    }
-    const string GetName() const
-    {
-        return m_name;
-    }
+    const string getId() const
+    { return id; }
 
-    void SetId( const string& newId )
-    {
-        strncpy( m_id , newId.c_str() , sizeof(m_id) );
-    }
-    void SetPw( const string& newPw )
-    {
-        strncpy( m_pw , newPw.c_str() , sizeof(m_pw) );
-    }
-    void SetName( const string& newName )
-    {
-        strncpy( m_name , newName.c_str() , sizeof(m_name) );
-    }
+    const string getPw() const
+    { return pw; }
 
+    const string getName() const
+    { return name; }
+
+    int getAge() const
+    { return age; }
+
+    void setId( const string& newId )
+    { id = newId; }
+
+    void setPw( const string& newPw )
+    { pw = newPw; }
+
+    void setName( const string& newName )
+    { name = newName; }
+
+    void setAge( int newAge )
+    { age = newAge; }
 
 };
 

@@ -21,7 +21,7 @@ namespace RedisException {
 
 class Redis {
 public:
-	redisContext* 	m_pContext	= nullptr;
+	redisContext *m_pContext = nullptr;
 
 	static const int PORT = 6379;
 	struct timeval timeout = { 2 , 500000 };

@@ -4,6 +4,7 @@
 #include <string>
 #include <list>
 #include <algorithm>
+
 #include "Session.h"
 #include "Exception.h"
 
@@ -21,7 +22,7 @@ public:
 
 	Session& getSessionById ( int session_id )
 	{
-		auto itr =  find_if( m_sessionList.begin() , m_sessionList.end() , 
+		auto itr = find_if( m_sessionList.begin() , m_sessionList.end() , 
 						[ &session_id ]( const Session& session ) { return session.getSessionID() == session_id; } );
 	
 		if( itr == m_sessionList.end() )
@@ -36,7 +37,7 @@ public:
 
 	void validate( int session_id )
 	{
-		Session& session	= getSessionById( session_id );
+		Session& session = getSessionById( session_id );
 
 		session.init();
 		session.m_pHBTimer->start();
@@ -44,7 +45,7 @@ public:
 
 	void expired( int session_id )
 	{
-		Session& session	= getSessionById( session_id );
+		Session& session = getSessionById( session_id );
 	
 		if( session.m_pHBTimer != nullptr )
 		{	
@@ -55,7 +56,7 @@ public:
 
 	void refresh( int session_id )
 	{
-		Session& session    = getSessionById( session_id );
+		Session& session = getSessionById( session_id );
 		
 		if( session.m_pHBTimer != nullptr )
 		{	

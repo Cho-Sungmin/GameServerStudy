@@ -16,8 +16,8 @@
 class Server {
 
 protected:
-	int 				m_listenSocket	;
-	struct sockaddr_in 	m_sockAddr		;
+	int m_listenSocket;
+	struct sockaddr_in m_sockAddr;
 	
 
 	void init_listenSocket( int protocol=1 )
@@ -27,22 +27,19 @@ protected:
 
 	void init_addr( const char* port ) 
 	{
-		
 		//--- init socket_address ---//
 
-		m_sockAddr.sin_family         = AF_INET            ;
-    	m_sockAddr.sin_addr.s_addr    = htonl( INADDR_ANY );
-    	m_sockAddr.sin_port           = htons( atoi(port) );
+		m_sockAddr.sin_family = AF_INET;
+    	m_sockAddr.sin_addr.s_addr = htonl( INADDR_ANY );
+    	m_sockAddr.sin_port = htons( atoi(port) );
 	}
 
 	bool listen( int max = 5 )
 	{
-
 		//--- listen() ---//
 
 		int result = ::listen( m_listenSocket , max );
-
-
+		
 		//--- DEBUG	---//
 
 		if( result == -1 )
@@ -99,8 +96,8 @@ protected:
 
 public:
 
-	Server() 	= default;
-	~Server() 	= default;
+	Server() = default;
+	~Server() = default;
 
 	virtual void init( const char* port )
     {

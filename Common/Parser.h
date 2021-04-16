@@ -3,6 +3,7 @@
 
 #include <string>
 #include <sstream>
+
 #include "UserInfo.h"
 
 using namespace std;
@@ -11,17 +12,9 @@ namespace Parser {
 
     void parseConfig( const string& target , string& result , const char& delim )
     {
+        int idx = target.find( delim );
 
-        for( int i=0; i<target.length(); i++ )
-        {
-            if( target.at(i) == delim )
-            {
-                //const string& leftStr = target.substr( 0 , i );
-                //const string& rightStr = target.substr( i+1 );
-                result = target.substr( i+1 );
-            }
-
-        }
+        result = target.substr( idx );
     }
 
     list<string> tokenize( const string& str , char delim )
@@ -53,7 +46,7 @@ namespace Parser {
 
         return -1;
     }
-    void parseUserInfo( UserInfo& target , const char data[] , const char delim )
+    void parseJSON( char parsedData[] , const char jsonData[] )
     {
         const int LEN = 12;
         char tmp_str[LEN];
@@ -66,7 +59,7 @@ namespace Parser {
         {
             strncpy( tmp_str , pData , idx );
             tmp_str[idx] = '\0';
-            target.SetId( tmp_str );
+            target.setId( tmp_str );
             pData += LEN;
         }
         else
@@ -79,7 +72,7 @@ namespace Parser {
         {
             strncpy( tmp_str , pData , idx );
             tmp_str[idx] = '\0';
-            target.SetPw( tmp_str );
+            target.setPw( tmp_str );
             pData += LEN;
         }
         else
@@ -91,7 +84,7 @@ namespace Parser {
         {
             strncpy( tmp_str , pData , idx );
             tmp_str[idx] = '\0';
-            target.SetName( tmp_str );
+            target.setName( tmp_str );
             pData += idx+1;
         }
         else
