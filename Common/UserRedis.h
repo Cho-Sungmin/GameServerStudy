@@ -51,9 +51,9 @@ static UserRedis *pInstance;
             delete( pInstance );
     }
         
-    const string lrangeCommand( const char* cmd )
+    const list<string&> lrangeCommand( const char* cmd )
     {
-        string result = "[";
+        list<string&> results;
     
         redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd ));
 
@@ -61,7 +61,7 @@ static UserRedis *pInstance;
         {
             cout << m_pContext->errstr << endl;
 
-            return "NULL";
+            return results;
         }
         if ( pReply->type == REDIS_REPLY_ERROR ) 
         {
@@ -71,16 +71,13 @@ static UserRedis *pInstance;
         {
             for( int i=0; i<pReply->elements; i++)
             {
-                result +=  pReply->element[i]->str;
-                result += ",";
+                results.emplace_back( pReply->element[i]->str );
             }
-            cout << "lrange : " << result << endl;
+            cout << "lrange : " << results.size() << " result(s) SUCCESS" << endl;
         }
         freeReplyObject(pReply);
-
-        result += "]";
         
-        return result;
+        return results;
     }
 
     bool lpushCommand( const char* cmd )
@@ -113,13 +110,9 @@ static UserRedis *pInstance;
 
     bool lpushRoomList( const RoomSchema& room )
     {
-        list<string> values =   {   "id:"               + room.id                       , 
-                                    "capacity:"         + to_string(room.capacity)      ,
-                                    "presentMembers:"   + to_string(room.presentMembers),
-                                    "title:"            + room.title            
-                                };
+        list<string> values = { room.id , to_string(room.capacity) , to_string(room.presentMembers) , room.title };
 
-        string cmd = "LPUSH room_list {";
+        string cmd = "LPUSH room_list ";
 
         while( !values.empty() )
         {
@@ -127,18 +120,40 @@ static UserRedis *pInstance;
             values.pop_front();
         }
 
-        cmd += "}";
+        cmd.pop_back();
 
         return lpushCommand( cmd.c_str() );
 
     }
 
-    const string lrangeRoomList()
+    const list<RoomSchema> lrangeRoomList()
     {
         const char *cmd = "LRANGE room_list 0 -1";
-        const string result = "{room_list:" + lrangeCommand( cmd ) + "}";
+        const list<string&> roomList = lrangeCommand( cmd );
+        list<RoomSchema> results;
 
-        return result;
+        for( auto str : roomList )
+        {
+            list<string> elements = Parser::tokenize( str , ',' );
+
+            RoomSchema room;
+
+            room.capacity = Parser::strToInt( elements.front() );
+            elements.pop_front();
+
+            room.id = Parser::strToInt( elements.front() );
+            elements.pop_front();
+
+            room.presentMembers = Parser::strToInt( elements.front() );
+            elements.pop_front();
+
+            room.title = elements.front();
+            elements.pop_front();
+
+            results.push_back( room );
+        }
+
+        return results;
     }
 
 
@@ -270,6 +285,11 @@ static UserRedis *pInstance;
             InputByteStream ibstream( obstream );
             userInfo.read( ibstream );
         }
+    }
+
+    void getElement( string& element )
+    {
+
     }
 };
 

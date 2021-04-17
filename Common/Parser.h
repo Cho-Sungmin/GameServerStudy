@@ -46,6 +46,7 @@ namespace Parser {
 
         return -1;
     }
+    #if 0
     void parseJSON( char parsedData[] , const char jsonData[] )
     {
         const int LEN = 12;
@@ -95,6 +96,7 @@ namespace Parser {
         //sprintf( &target.m_age , "%d" , )
 
     }
+    #endif
 
     int strToInt( const string& str )
     {

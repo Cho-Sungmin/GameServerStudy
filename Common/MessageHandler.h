@@ -167,31 +167,41 @@ public:
 		SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
 		Header header;
 		header.read( *pPacket );
-	    Session& session = pSessionMgr->getSessionById( header.sessionID );     // To update user information in the session, if it's verified user.
         
 		//--- Result from redis LRANGE command ---//
-        const string& result = UserRedis::getInstance()->lrangeRoomList();
+        const list<RoomSchema> result = UserRedis::getInstance()->lrangeRoomList();
 
 		//--- Set response packet ---//
-		OutputByteStream resPacket( Header::SIZE );
+		int payloadLen = 0;
 
-		//--- Set header for response message ---//
+		for( auto room : result )
+			payloadLen += room.getLength();
+		
 		header.type = PACKET_TYPE::RES;
-		header.len = result.length();
 
-		//*** TODO: Parse result string to room information ***//
-
-		pMsg->setPacket( PACKET_TYPE::RES , 0 , result.length() , pMsg->head.sessionID , result.c_str() );
-
+		OutputByteStream resPacket( Header::SIZE );
+	
         //--- CASE : The request is VALID ---//
-        if( result != "NULL" )
+        if( result.size() > 0 )
         {
-            pMsg->head.func = FUNCTION_CODE::RES_ROOM_LIST_SUCCESS;
+            header.func = FUNCTION_CODE::RES_ROOM_LIST_SUCCESS;
+			header.len = payloadLen;
+
+			header.write( resPacket );
+
+			resPacket.write( result.size());	// Write list size first
+
+			for( auto room : result )
+				room.write( resPacket );
         }
         //--- CASE : The request is INVALID ---//
         else
         {
-            pMsg->head.func = FUNCTION_CODE::RES_ROOM_LIST_FAIL;
+            header.func = FUNCTION_CODE::RES_ROOM_LIST_FAIL;
+			header.len = 0;
+
+			
+			header.write( resPacket );
         }
     }
 
@@ -225,19 +235,30 @@ public:
 		RoomSchema room;
 		room.read( *pPacket );
 
-		string result = "";
-
 		if( UserRedis::getInstance()->hmsetNewRoom( room ) == true )
 			UserRedis::getInstance()->hmgetRoom( room );
 
 		//--- Set response packet ---//
-		pMsg->setPacket( PACKET_TYPE::RES , FUNCTION_CODE::RES_MAKE_ROOM_SUCCESS , result.length() , pMsg->head.sessionID , result.c_str() );
+		header.type = PACKET_TYPE::RES;
+	
+		OutputByteStream resPacket( Header::SIZE + header.len );
 
-        //--- CASE : The request is INVALID ---//
-        if( result == "NULL" )
+        //--- CASE : The request is valid ---//
+        if( room.id != "" )
         {
-            pMsg->head.func = FUNCTION_CODE::RES_ROOM_LIST_FAIL;
+			header.func = FUNCTION_CODE::RES_MAKE_ROOM_SUCCESS;
+			header.len = room.getLength();
+			header.write( resPacket );
+			room.write( resPacket );
+            
         }
+		//--- CASE : The request is invalid ---//
+		else
+		{
+			header.func = FUNCTION_CODE::RES_MAKE_ROOM_FAIL;
+			header.len = 0;
+			header.write( resPacket );
+		}
 
        
 	}
