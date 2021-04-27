@@ -14,7 +14,7 @@ namespace Parser {
     {
         int idx = target.find( delim );
 
-        result = target.substr( idx );
+        result = target.substr( idx + 1 );
     }
 
     list<string> tokenize( const string& str , char delim )
@@ -26,7 +26,11 @@ namespace Parser {
         while( cursor < str.length() )
         {
             idx = str.find(delim , idx);
-            result.push_back( str.substr(cursor,idx) );
+            
+            if( idx == -1)
+                break;
+
+            result.push_back( str.substr( cursor , idx - cursor ) );
             idx += 1;
             cursor = idx;
         }

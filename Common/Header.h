@@ -4,9 +4,8 @@
 
 #include <iostream>
 #include <stdexcept>
-#include "string.h"
-#include "unistd.h"
 
+#include "unistd.h"
 #include "InputByteStream.h"
 #include "OutputByteStream.h"
 
@@ -27,7 +26,7 @@ enum PACKET_TYPE : uint8_t {
 enum FUNCTION_CODE : uint16_t {
 
 	//--- Function Key ---//
-	REQ_VERIFY	= 0,
+	REQ_VERIFY = 0,
 	REQ_SIGN_IN,
 	REQ_MAKE_ROOM,
 	REQ_ENTER_LOBBY,
@@ -47,6 +46,7 @@ enum FUNCTION_CODE : uint16_t {
 	RES_ENTER_LOBBY_FAIL,
 	RES_ROOM_LIST_FAIL,
 	RES_JOIN_GAME_FAIL,
+	WELCOME,
 	SUCCESS,
 	FAIL,
 	REJECT,
@@ -62,7 +62,7 @@ enum FUNCTION_CODE : uint16_t {
 typedef struct header {
 	int8_t type = 0;
 	uint16_t func = 0;
-	int len	= 0;
+	uint32_t len = 0;
 	uint32_t sessionID = 0;
 
 
@@ -96,15 +96,17 @@ typedef struct header {
 
 	//--- Operator ---//
 
-	void operator=( const struct header& h ){
+	struct header& operator=( const struct header& h ){
 		type = h.type;
 		func = h.func;
 		len	= h.len;
 		sessionID = h.sessionID;
+
+		return *this;
 	}
 
 	friend std::ostream& operator<<( std::ostream& os , const struct header& h ) {
-		return os << "[" << h.type << "] [" << h.func << "] [" << h.len << "]  [" << h.sessionID << "]";
+		return os << "[" << to_string( h.type )<< "] [" << to_string( h.func ) << "] [" << to_string( h.len ) << "]  [" << to_string( h.sessionID ) << "]";
 	}
 
 

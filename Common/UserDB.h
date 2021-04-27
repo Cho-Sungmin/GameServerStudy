@@ -15,10 +15,10 @@ class UserDB : public MySQL {
     bool m_isConn = false;
 
 public:
-    UserRedis* m_pRedis;
+    UserRedis *m_pRedis;
 
     UserDB() = delete;
-    UserDB( UserRedis* _redis ) : m_pRedis( _redis ){}
+    UserDB( UserRedis *_redis ) : m_pRedis( _redis ){}
 
     ~UserDB()
     {
@@ -69,28 +69,50 @@ public:
         InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( lParam );
         SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
         Header header; header.read( *pPacket );
-        Session& session = pSessionMgr->getSessionById( header.sessionID );     // To update user information in the session, if it's verified user.
 
-        UserInfo& userInfo = session.m_userInfo;
-        userInfo.read( *pPacket );
+        try {
 
-        header.type = PACKET_TYPE::RES;
-        header.len = userInfo.getLength();
+            Session& session = pSessionMgr->getSessionById( header.sessionID );     // To update user information in the session, if it's verified user.
+            UserInfo& userInfo = session.m_userInfo;
+            
+            userInfo.read( *pPacket );
+            getUserData( userInfo );
 
-        if( userInfo.getName() == "" )
-        {
-            header.func = FUNCTION_CODE::RES_VERIFY_FAIL;
+            //--- Set response packet ---//
+			OutputByteStream payload( TCP::MPS );
+			userInfo.write( payload );
+
+			header.type = PACKET_TYPE::RES;
+			header.len = payload.getLength();
+
+            OutputByteStream resPacket( Header::SIZE + header.len );
+
+            if( userInfo.getName() == "" )
+            {
+                header.func = FUNCTION_CODE::RES_VERIFY_FAIL;
+                header.len = 0;
+                header.write( resPacket );
+            }
+            else{
+                header.func = FUNCTION_CODE::RES_VERIFY_SUCCESS;
+                header.write( resPacket );
+                resPacket << payload;
+
+                m_pRedis->hmsetUserInfo( userInfo );
+            }
+            
+            *pPacket = InputByteStream( resPacket );
         }
-        else{
-            header.func = FUNCTION_CODE::RES_VERIFY_SUCCESS;
-            m_pRedis->hmsetUserInfo( userInfo );
+        catch( Not_Found_Ex e )
+        {
+            cout << "[verifyUserInfo] " << e.what() << endl;
         }
             
     }
 
     void registerHandler( std::map  <
                                         int , function< void(void*,void*) > 
-                                    >& h_map )
+                                    > &h_map )
     {
 
         h_map.insert( std::make_pair( (int)FUNCTION_CODE::REQ_VERIFY , 

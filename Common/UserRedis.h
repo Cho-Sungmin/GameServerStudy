@@ -51,9 +51,9 @@ static UserRedis *pInstance;
             delete( pInstance );
     }
         
-    const list<string&> lrangeCommand( const char* cmd )
+    const list<string> lrangeCommand( const char* cmd )
     {
-        list<string&> results;
+        list<string> results;
     
         redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd ));
 
@@ -129,26 +129,34 @@ static UserRedis *pInstance;
     const list<RoomSchema> lrangeRoomList()
     {
         const char *cmd = "LRANGE room_list 0 -1";
-        const list<string&> roomList = lrangeCommand( cmd );
+        const list<string> roomList = lrangeCommand( cmd );
         list<RoomSchema> results;
+
+        list<string> elements;
+        RoomSchema room;
 
         for( auto str : roomList )
         {
-            list<string> elements = Parser::tokenize( str , ',' );
+            elements = Parser::tokenize( str , ',' );    
 
-            RoomSchema room;
+            list<string> values;
 
-            room.capacity = Parser::strToInt( elements.front() );
-            elements.pop_front();
+            for( auto str : elements )
+            {
+                string element;
+                Parser::parseConfig( str , element , ':' );
 
-            room.id = Parser::strToInt( elements.front() );
-            elements.pop_front();
+                values.push_back( element );
+            }
 
-            room.presentMembers = Parser::strToInt( elements.front() );
-            elements.pop_front();
-
-            room.title = elements.front();
-            elements.pop_front();
+            room.id = values.front();
+            values.pop_front();
+            room.capacity = Parser::strToInt( values.front() );
+            values.pop_front();
+            room.presentMembers = Parser::strToInt( values.front() );
+            values.pop_front();
+            room.title = values.front();
+            values.pop_front();
 
             results.push_back( room );
         }
@@ -175,7 +183,7 @@ static UserRedis *pInstance;
         else
         {
             string tmp_str = "";
-            for( int i=0; i<pReply->elements-1; i++)
+            for( int i=0; i<pReply->elements; i++)
             {
                 tmp_str = pReply->element[i]->str;
                 result += tmp_str;
@@ -196,6 +204,7 @@ static UserRedis *pInstance;
         if ( pReply->type == REDIS_REPLY_ERROR ) 
         {
             cout << "Command Error: " << pReply->str << endl;
+            cout << "Command : [" + string(cmd) + "]" << endl;
         }
         else
         {
@@ -255,7 +264,7 @@ static UserRedis *pInstance;
         const string& id = " " + data.getId();
         const string& pw = " pw " + data.getPw();
         const string& name = " name " + data.getName();
-        const string& age = " age " + data.getAge();
+        const string& age = " age " + to_string(data.getAge());
 
         const string& cmd = "HMSET" + id + pw + name + age;
 
@@ -274,14 +283,15 @@ static UserRedis *pInstance;
         else
         {
             list<string> resultList = Parser::tokenize(result , ',');
+            resultList.push_front(id);
 
             OutputByteStream obstream( result.length() );
 
             for( auto str : resultList )
             {
-                obstream.write( str , 0 );
+                obstream.write( str );
             }
-
+            
             InputByteStream ibstream( obstream );
             userInfo.read( ibstream );
         }

@@ -45,21 +45,22 @@ public:
 
 	void processMSG( void* lParam = nullptr , void* rParam  = nullptr )
 	{
-		InputByteStream msg( Header::SIZE );
+		InputByteStream msg;
 		Header header;
 
 		try {
-
 			m_msgQ.dequeue( msg );
 			header.read( msg );
-
+			msg.flush();
 			auto itr = m_hMap.find( header.func );
 
 			if( itr != m_hMap.end() )
 				itr->second( &msg , lParam );
 
 			TCP::send_packet( header.sessionID , msg );
+			
 			m_pLog->writeLOG( msg , LOG::TYPE::SEND );
+			msg.close();
 		}
 		catch( Empty_Ex e ) {
 			//std::cout << e.what() << std::endl;

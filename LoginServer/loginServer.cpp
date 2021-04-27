@@ -1,7 +1,6 @@
 #include <iostream>
 #include <list>
 
-
 #include "SelectIOServer.h"
 #include "ServerAdaptor.h"
 #include "SessionManager.h"
@@ -11,21 +10,23 @@
 #include "UserDB.h"
 #include "UserRedis.h"
 
+using namespace std;
+
 UserRedis* UserRedis::pInstance;
 
 int main()
 {
 	UserRedis* pRedis = UserRedis::getInstance();
-	UserDB	userDB( pRedis );
+	UserDB userDB( pRedis );
 
-	ServerAdaptor<SelectIOServer> 	server		;
-	SessionManager					sessionMgr	;
-	MessageQueue					msgQ		;
+	ServerAdaptor<SelectIOServer> server;
+	SessionManager sessionMgr;
+	MessageQueue msgQ;
 
-	MessageHandler		msgHandler	( msgQ , "LoginServer" );
-	MessageProcessor	msgProc		( msgQ , "LoginServer" );
+	MessageHandler msgHandler( msgQ , "LoginServer" );
+	MessageProcessor msgProc( msgQ , "LoginServer" );
 
-	int		result	= 0	;
+	int	result = 0;
 
 
 	//--- Register handlers ---//
@@ -38,25 +39,25 @@ int main()
 	//--- Database Connection ---//
 	try {
 		pRedis->connect();
-		std::cout << "[SUCC] Redis connection" << std::endl;
+		cout << "[SUCC] Redis connection" << endl;
 		userDB.init();
 	}
 	catch( RedisException::Connection_Ex e )
 	{
-		std::cout << e.what() << std::endl;
+		cout << e.what() << endl;
 	}
 	
 	
 	while( server.getState() != STOP ) 
 	{
-		int					clntSocket	 = -1	;
-		struct sockaddr_in 	addr				;
+		int	clntSocket = -1;
+		struct sockaddr_in addr;
 		
 		try {
 			result = server.run( reinterpret_cast<void*>(&clntSocket) , reinterpret_cast<void*>(&addr) );
 		} 
 		catch( Select_Ex e ) {
-			std::cout << e.what() << std::endl;
+			cout << e.what() << endl;
 			continue;
 		}
 		
@@ -64,18 +65,18 @@ int main()
 		//--- Event handling ---//
 		switch( result ) {
 
-			case INVALID:	// Invalid type of event
+			case INVALID :	// Invalid type of event
 
 				msgHandler.invalidHandler();
 				break;
 
-			case ACCEPT	:	// Connection
+			case ACCEPT :	// Connection
 
-				msgHandler.acceptHandler( sessionMgr , clntSocket , std::string( "[ SUCC ] Connect to LoginServer" ) );
+				msgHandler.acceptHandler( sessionMgr , clntSocket , string( "[ SUCC ] Connect to LoginServer" ) );
 				msgProc.processMSG();
 				break;
 
-			case INPUT	:	// Got messages
+			case INPUT :	// Got messages
 
 				try {
 					msgHandler.inputHandler( clntSocket );
@@ -84,35 +85,37 @@ int main()
 				}
 				catch( TCP::Connection_Ex e )
 				{
-					std::cout << e.what() << std::endl;
+					cout << e.what() << endl;
 
 					//--- Set free ---//
-					sessionMgr.expired		( clntSocket );
-					server.farewell			( clntSocket );
+					sessionMgr.expired( clntSocket );
+					server.farewell( clntSocket );
 				}
 				break;
 
-			case INTR	:	// Signal after HB_Timer handler called
+			case INTR :	// Signal after HB_Timer handler called
 			{
 				//--- Set invalid sessions free ---//
 				try{
-					const std::list<Session>& 	sessionList = sessionMgr.getSessionList();
+					const list<Session>& sessionList = sessionMgr.getSessionList();
 
 					for( auto session_ref : sessionList )
 					{
 						if( sessionMgr.validationCheck( session_ref ) == false )
 						{	
-							int 	invalidSessionID 	= session_ref.getSessionID();
+							int invalidSessionID = session_ref.getSessionID();
 
 							//--- Set free ---//
-							sessionMgr.expired		( invalidSessionID 	);
-							server.farewell			( invalidSessionID 	);
+							sessionMgr.expired( invalidSessionID );
+							server.farewell( invalidSessionID );
 						}
 					}
 				}
-				catch( Not_Found_Ex e ) {}
+				catch( Not_Found_Ex e ) {
+					cout << "[main] " << e.what() << endl;
+				}
 			}
-			default		:	// Undefined
+			default	:	// Undefined
 				break;
 		}
 

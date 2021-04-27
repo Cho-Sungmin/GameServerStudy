@@ -51,6 +51,7 @@ public:
 		{	
 			session.m_pHBTimer->stop();
 			m_sessionList.remove( session );
+			cout << "Expired session[" << to_string( session_id ) << "]" << endl;
 		}
 	}
 
@@ -67,6 +68,7 @@ public:
 	void newSession( int socket )
 	{
 		m_sessionList.emplace_back( socket );
+		cout << "New session[" << to_string( socket ) << "]" << endl;
 	}
 
 	bool validationCheck( const Session& session_cref )

@@ -20,10 +20,10 @@ class MySQL {
     string database;
 
 protected :
-    sql::Driver*        m_pDriver = nullptr;
-    sql::Connection*    m_pCon    = nullptr;
-    sql::Statement*     m_pStmt   = nullptr;
-    sql::ResultSet*     m_pRes    = nullptr;
+    sql::Driver *m_pDriver = nullptr;
+    sql::Connection *m_pCon = nullptr;
+    sql::Statement *m_pStmt = nullptr;
+    sql::ResultSet *m_pRes = nullptr;
   
     void initConfig()
     {
@@ -93,7 +93,7 @@ public:
         try{
             //--- Create a connection ---//
             m_pDriver = get_driver_instance();
-            m_pCon = m_pDriver->connect("tcp://127.0.0.1:3306" , id , pw );
+            m_pCon = m_pDriver->connect( "tcp://127.0.0.1:3306" , id , pw );
         
             //- Use database -//
             m_pCon->setSchema( database );

@@ -46,59 +46,51 @@ public:
 		sessionMgr.validate( clntSocket );
 
 		// Enqueue welcome MSG //
-		Header header( PACKET_TYPE::NOTI , FUNCTION_CODE::NONE , welcomeMSG.length() , clntSocket );
-		OutputByteStream packet( header.len );
-		header.write( packet );
-		packet.write( welcomeMSG );
-		
-		m_msgQ.enqueue( packet );
+		OutputByteStream payload( welcomeMSG.length() + 4 );
+		payload.write( welcomeMSG );
 
+		Header header( PACKET_TYPE::NOTI , FUNCTION_CODE::WELCOME , payload.getLength() , clntSocket );
+
+		OutputByteStream packet( Header::SIZE + header.len );
+		header.write( packet );
+		packet << payload;
+		m_msgQ.enqueue( InputByteStream( packet ) );
 	}
 
 	void inputHandler( int clntSocket )
 	{
-		InputByteStream msg( Header::SIZE );
-		Header header;
+		InputByteStream msg( TCP::MPS );
 
 		try {
 			//--- Verify user informations ---//
 
-
 			TCP::recv_packet( clntSocket , msg );
 			m_pLog->writeLOG( msg , LOG::TYPE::RECV );
-			header.read( msg );
+			Header header; header.read( msg );
+			msg.flush();
 
-			header.sessionID = clntSocket;
-
-			switch( header.type ) {
-			
-				case PACKET_TYPE::HB		: //--- TYPE : HB ---//
+			switch( header.type )
+			{
+				case PACKET_TYPE::HB : //--- TYPE : HB ---//
 					onHeartbeat();
 					break;
-
-				case PACKET_TYPE::REQ	: //--- TYPE : REQ ---//
+				case PACKET_TYPE::REQ : //--- TYPE : REQ ---//
 				{
 					onRequest( msg );
 					break;
 				}
-				case PACKET_TYPE::RES	: //--- TYPE : RES ---//
+				case PACKET_TYPE::RES : //--- TYPE : RES ---//
 					break;
-				case PACKET_TYPE::NOTI	: //--- TYPE : NOTI ---//
+				case PACKET_TYPE::NOTI : //--- TYPE : NOTI ---//
 					break;
-				default	 	:
+				default :
 					break;
 			}
-
 		}
 		catch( TCP::Connection_Ex e )
 		{
 			throw e;
 		}
-		catch( Not_Found_Ex e )
-		{
-			cout << "[inputHandler] " << e.what() << endl;
-		}
-
 	}
 
 	void invalidHandler()
@@ -111,9 +103,9 @@ public:
 		//std::cout << "<<< [HB]  -^-v-^-" << std::endl;		
 	}
 
-	void onRequest( const InputByteStream& msg )
+	void onRequest( InputByteStream& msg )
 	{
-		m_msgQ.enqueue( msg );
+		m_msgQ.enqueue( move( msg ) );
 	}
 
 	void onSignIn( const string& id , const std::string& pw )
@@ -130,34 +122,51 @@ public:
     {
         InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( lParam );
 		SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
-		Header header;
-		header.read( *pPacket );
-        Session& session = pSessionMgr->getSessionById( header.sessionID );     // To update user information in the session, if it's verified user.
+		Header header; header.read( *pPacket );
 
-		//--- Extract userInfo from message ---//
-        UserInfo userInfo;      // User information from REQ_MSG.
-		userInfo.read( *pPacket );
-        
-		//--- Result from redis HMGET command ---//
-        UserRedis::getInstance()->hmgetUserInfo( userInfo );
+		try{
+			Session& session = pSessionMgr->getSessionById( header.sessionID );     // To update user information in the session, if it's verified user.
 
-		//--- Set response packet ---//
-        header.type = PACKET_TYPE::RES;
-        header.len = userInfo.getLength();
+			//--- Extract userInfo from message ---//
+			UserInfo userInfo;      // User information from REQ_MSG.
+			userInfo.read( *pPacket );
 
-        //--- CASE : The request is VALID ---//
-        if( userInfo.getId() != "" )
+			//--- Result from redis HMGET command ---//
+			UserRedis::getInstance()->hmgetUserInfo( userInfo );
+
+			//--- Set response packet ---//
+			OutputByteStream payload( TCP::MPS );
+			userInfo.write( payload );
+
+			header.type = PACKET_TYPE::RES;
+			header.len = payload.getLength();
+
+			OutputByteStream resPacket( Header::SIZE + header.len );
+
+			//--- CASE : The request is VALID ---//
+			if( userInfo.getId() != "" )
+			{
+				//--- Update session data ---//
+				session.m_userInfo = userInfo;
+				session.m_userInfo.setPw( "" );
+
+				header.func = FUNCTION_CODE::RES_ENTER_LOBBY_SUCCESS;
+				header.write( resPacket );
+				resPacket << payload;
+			}
+			//--- CASE : The request is INVALID ---//
+			else
+			{
+				header.func = FUNCTION_CODE::RES_ENTER_LOBBY_FAIL;
+				header.len= 0;
+				header.write( resPacket );
+			}
+
+			*pPacket = InputByteStream(resPacket);
+		}
+		catch( Not_Found_Ex e )
         {
-            //--- Update session data ---//
-            session.m_userInfo = userInfo;
-            session.m_userInfo.setPw( "" );
-
-            header.func = FUNCTION_CODE::RES_ENTER_LOBBY_SUCCESS;
-        }
-        //--- CASE : The request is INVALID ---//
-        else
-        {
-            header.func = FUNCTION_CODE::RES_ENTER_LOBBY_FAIL;
+            cout << "[verifyUserInfo] " << e.what() << endl;
         }
     }
 
@@ -165,44 +174,40 @@ public:
     {
         InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( lParam );
 		SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
-		Header header;
-		header.read( *pPacket );
+		Header header; header.read( *pPacket );
         
 		//--- Result from redis LRANGE command ---//
         const list<RoomSchema> result = UserRedis::getInstance()->lrangeRoomList();
 
-		//--- Set response packet ---//
-		int payloadLen = 0;
-
-		for( auto room : result )
-			payloadLen += room.getLength();
-		
 		header.type = PACKET_TYPE::RES;
 
-		OutputByteStream resPacket( Header::SIZE );
+		OutputByteStream resPacket( TCP::MPS );
 	
         //--- CASE : The request is VALID ---//
         if( result.size() > 0 )
         {
-            header.func = FUNCTION_CODE::RES_ROOM_LIST_SUCCESS;
-			header.len = payloadLen;
-
-			header.write( resPacket );
-
-			resPacket.write( result.size());	// Write list size first
+			//--- Set response packet ---//
+			OutputByteStream payload( TCP::MPS );
 
 			for( auto room : result )
-				room.write( resPacket );
+			{
+				room.write( payload );
+			}
+			header.len = payload.getLength();
+			header.func = FUNCTION_CODE::RES_ROOM_LIST_SUCCESS;
+
+			header.write( resPacket );
+			resPacket << payload;
         }
         //--- CASE : The request is INVALID ---//
         else
         {
             header.func = FUNCTION_CODE::RES_ROOM_LIST_FAIL;
 			header.len = 0;
-
-			
 			header.write( resPacket );
         }
+		
+		*pPacket = InputByteStream( resPacket );
     }
 
 	void resJoinGame( void* lParam , void* rParam )
@@ -226,30 +231,28 @@ public:
 	void resMakeRoom( void* lParam , void* rParam )
 	{
 		InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( lParam );
-		Header header;
-		header.read( *pPacket );
+		Header header; header.read( *pPacket );
 		
-		header.type = PACKET_TYPE::RES;
-		header.len = 0;
-		
-		RoomSchema room;
-		room.read( *pPacket );
+		RoomSchema room; room.read( *pPacket );
 
 		if( UserRedis::getInstance()->hmsetNewRoom( room ) == true )
 			UserRedis::getInstance()->hmgetRoom( room );
 
 		//--- Set response packet ---//
+		OutputByteStream payload( TCP::MPS );
+		room.write( payload );
+
 		header.type = PACKET_TYPE::RES;
-	
+		header.len = payload.getLength();
+
 		OutputByteStream resPacket( Header::SIZE + header.len );
 
         //--- CASE : The request is valid ---//
         if( room.id != "" )
         {
 			header.func = FUNCTION_CODE::RES_MAKE_ROOM_SUCCESS;
-			header.len = room.getLength();
 			header.write( resPacket );
-			room.write( resPacket );
+			resPacket << payload;
             
         }
 		//--- CASE : The request is invalid ---//
@@ -260,7 +263,8 @@ public:
 			header.write( resPacket );
 		}
 
-       
+		InputByteStream ibstream( resPacket );
+		*pPacket = resPacket;
 	}
 
 

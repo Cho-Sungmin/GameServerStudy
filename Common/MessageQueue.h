@@ -7,7 +7,6 @@
 
 #include "Header.h"
 
-using namespace std;
 
 class Empty_Ex : public std::exception {
 public:
@@ -18,14 +17,12 @@ public:
 
 class MessageQueue {
 
-	queue<InputByteStream> 	queue;
+	std::queue<InputByteStream> queue;
 
 public:
-	
-
 	//--- Constructor ---//
 
-	MessageQueue() 	= default;
+	MessageQueue() = default;
 	~MessageQueue() = default;
 
 
@@ -38,30 +35,29 @@ public:
 			return false;
 	}
 
-	void enqueue( const InputByteStream& data )
+	void enqueue( InputByteStream&& data )
 	{
-		queue.push( data );
+		queue.push( move( data ) );
 	}
 
 	void dequeue( InputByteStream& data )
 	{
-
 		if( !isEmpty() ) {
-			data = queue.front();
+			data = move(queue.front());
 			queue.pop();
+			
 		}else
 			throw Empty_Ex();
 	}
 
-
 	//--- Operator ---//
 
-	void operator=( const MessageQueue& _msgQ )
+	MessageQueue& operator=( const MessageQueue& _msgQ )
 	{
-		queue	= _msgQ.queue;
+		queue = _msgQ.queue;
+
+		return *this;
 	}
 };
 
-
 #endif
-	

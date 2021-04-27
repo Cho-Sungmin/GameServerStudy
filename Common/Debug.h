@@ -64,6 +64,7 @@ public:
     void writeLOG( InputByteStream& packet , int type )
     {
         string type_str = "";
+        string time_str = getCurrentTime();
 
         file.open( fileName + "_" + getCurrentDate() + ".txt" , ios::out | ios::app );
 
@@ -79,8 +80,7 @@ public:
             break;
         }
 
-
-        file << type_str << getLog( packet ) << endl;
+        file << type_str << time_str << getLog( packet ) << endl;
 
         if( file.is_open() )
         {
@@ -106,12 +106,38 @@ private:
 
     const string getLog( InputByteStream& packet )
     {
+        packet.flush();
+
         Header header;
         header.read( packet );
         string header_str = getHeaderString( header );
-        string data_str = packet.getBuffer();
+        string data_str = "";
+
+        if( header.len > 0 )
+        {
+            data_str = getHexaString( packet.getBuffer() , header.len );
+        }
+
+        packet.flush();
 
         return header_str + data_str;
+    }
+
+    string getHexaString( const char* bytes , int size )
+    {
+        string hexStr = "[ ";
+
+        for( int i=0; i<size; i++ )
+        {
+            char character[12];
+
+            sprintf( character , "%02x " , bytes[i] );
+            hexStr += character;
+        }
+
+        hexStr += "]";
+
+        return hexStr;
     }
 
 
@@ -119,8 +145,8 @@ private:
     {
         time_t now = time(0);
         struct tm* timeStruct = localtime(&now);
-        char buf[20] = {0x00,};
-        strftime( buf , sizeof(buf) , "%Y-%m-%d + %X", timeStruct );
+        char buf[50] = {0x00,};
+        strftime( buf , sizeof(buf) , "[%Y-%m-%d+%X]", timeStruct );
 
         return buf;
     }
@@ -144,6 +170,9 @@ private:
         case PACKET_TYPE::HB :
             type_str = "HB";
             break;
+        case PACKET_TYPE::NOTI :
+            type_str = "NOTI";
+            break;
         case PACKET_TYPE::REQ :
             type_str = "REQ";
             break;
@@ -154,7 +183,7 @@ private:
             type_str = "MSG";
             break;  
         default:
-            type_str = "UNDEFINED";
+            type_str = "UNDEFINED(" + to_string(type) + ")";
             break;
         }
 
@@ -220,6 +249,9 @@ private:
             break;  
         case FUNCTION_CODE::RES_JOIN_GAME_FAIL :
             type_str = "RES_JOIN_GAME_FAIL";
+            break;
+         case FUNCTION_CODE::WELCOME :
+            type_str = "WELCOME";
             break;
         case FUNCTION_CODE::SUCCESS :
             type_str = "SUCCESS";

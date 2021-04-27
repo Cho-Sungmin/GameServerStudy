@@ -13,5 +13,12 @@ public:
 	}
 };	
 
+class MemoryAlloc_Ex : public std::exception {
 
+public:
+
+	virtual const char* what() const noexcept override {
+		return "Memory allocation exception";
+	}
+};	
 #endif
