@@ -12,7 +12,7 @@
 
 class SessionManager {
 
-	std::list<Session>	m_sessionList = {};
+	std::list<Session*>	m_sessionList = {};
 
 public:
 	
@@ -23,14 +23,14 @@ public:
 	Session& getSessionById ( int session_id )
 	{
 		auto itr = find_if( m_sessionList.begin() , m_sessionList.end() , 
-						[ &session_id ]( const Session& session ) { return session.getSessionID() == session_id; } );
+						[ &session_id ]( const Session* pSession ) { return pSession->getSessionId() == session_id; } );
 	
 		if( itr == m_sessionList.end() )
 			throw Not_Found_Ex();
 		else
-			return *itr;
+			return **itr;
 	}
-	const std::list<Session>& getSessionList()
+	const std::list<Session*>& getSessionList()
 	{
 		return m_sessionList;
 	}
@@ -50,7 +50,7 @@ public:
 		if( session.m_pHBTimer != nullptr )
 		{	
 			session.m_pHBTimer->stop();
-			m_sessionList.remove( session );
+			m_sessionList.remove( &session );
 			cout << "Expired session[" << to_string( session_id ) << "]" << endl;
 		}
 	}
@@ -67,16 +67,21 @@ public:
 
 	void newSession( int socket )
 	{
-		m_sessionList.emplace_back( socket );
+		m_sessionList.push_back( new Session(socket) );
 		cout << "New session[" << to_string( socket ) << "]" << endl;
 	}
 
-	bool validationCheck( const Session& session_cref )
+	void addSession( Session& session )
 	{
-		if( session_cref.m_pHBTimer == nullptr )
+		m_sessionList.push_back( &session );
+	}
+
+	bool validationCheck( const Session& session ) const
+	{
+		if( session.m_pHBTimer == nullptr )
 			return true;
 
-		if( session_cref.m_pHBTimer->getState() == TIMER_SLEEP )
+		if( session.m_pHBTimer->getState() == TIMER_SLEEP )
 			return false;
 		else
 			return true;

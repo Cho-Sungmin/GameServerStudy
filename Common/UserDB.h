@@ -64,15 +64,15 @@ public:
     }
 
 public:
-    void verifyUserInfo( void* lParam , void* rParam )
+    void verifyUserInfo( void **inParams , void **outParams )
     {
-        InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( lParam );
-        SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
+        InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( outParams[0] );
+        SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( inParams[0] );
         Header header; header.read( *pPacket );
 
         try {
 
-            Session& session = pSessionMgr->getSessionById( header.sessionID );     // To update user information in the session, if it's verified user.
+            Session& session = pSessionMgr->getSessionById( header.sessionId );     // To update user information in the session, if it's verified user.
             UserInfo& userInfo = session.m_userInfo;
             
             userInfo.read( *pPacket );
@@ -110,15 +110,13 @@ public:
             
     }
 
-    void registerHandler( std::map  <
-                                        int , function< void(void*,void*) > 
-                                    > &h_map )
+    void registerHandler( map <int , function<void(void**,void**)>> &h_map )
     {
 
-        h_map.insert( std::make_pair( (int)FUNCTION_CODE::REQ_VERIFY , 
-                                        [this](void* l , void* r) 
+        h_map.insert( make_pair( (int)FUNCTION_CODE::REQ_VERIFY , 
+                                        [this](void **in , void **out) 
                                         { 
-                                            this->verifyUserInfo(l,r); 
+                                            this->verifyUserInfo(in,out); 
                                         } 
                                     ) 
                     );

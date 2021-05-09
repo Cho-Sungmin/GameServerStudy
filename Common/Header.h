@@ -22,10 +22,9 @@ enum PACKET_TYPE : uint8_t {
 	MSG
 };
 
-//*** REQUEST MSG ***//
 enum FUNCTION_CODE : uint16_t {
 
-	//--- Function Key ---//
+	//--- Request ---//
 	REQ_VERIFY = 0,
 	REQ_SIGN_IN,
 	REQ_MAKE_ROOM,
@@ -33,7 +32,7 @@ enum FUNCTION_CODE : uint16_t {
 	REQ_ROOM_LIST,
 	REQ_JOIN_GAME,
 
-	//--- Result Code ---//
+	//--- Response ---//
 	RES_VERIFY_SUCCESS,
 	RES_SIGN_IN_SUCCESS,
 	RES_MAKE_ROOM_SUCCESS,
@@ -46,24 +45,26 @@ enum FUNCTION_CODE : uint16_t {
 	RES_ENTER_LOBBY_FAIL,
 	RES_ROOM_LIST_FAIL,
 	RES_JOIN_GAME_FAIL,
+
+	//--- Others ---//
 	WELCOME,
+	REPLICATION,
 	SUCCESS,
 	FAIL,
 	REJECT,
 	EXIT, 
 	ANY,
-	NONE
+	NONE,
+
+	MAX_CODE
 };
-
-
-//*** RESPONSE MSG ***//
 
 
 typedef struct header {
 	int8_t type = 0;
 	uint16_t func = 0;
-	uint32_t len = 0;
-	uint32_t sessionID = 0;
+	int len = 0;
+	uint32_t sessionId = 0;
 
 
 	//--- Constructor ---//
@@ -71,9 +72,9 @@ typedef struct header {
 	header() = default;
 
 	header( int8_t _t , uint16_t _f , int _l , uint32_t _i ) 
-		: type(_t) , func(_f) , len(_l) , sessionID(_i) {}
+		: type(_t) , func(_f) , len(_l) , sessionId(_i) {}
 
-	static const int SIZE = sizeof(type) + sizeof(func) + sizeof(len) + sizeof(sessionID);
+	static const int SIZE = sizeof(type) + sizeof(func) + sizeof(len) + sizeof(sessionId);
 
 
 	//--- Stream functions ---//
@@ -83,7 +84,7 @@ typedef struct header {
 		stream.read( type );
 		stream.read( func );
 		stream.read( len );
-		stream.read( sessionID );
+		stream.read( sessionId );
 	}
 
 	void write( OutputByteStream& stream )
@@ -91,7 +92,7 @@ typedef struct header {
 		stream.write( type );
 		stream.write( func );
 		stream.write( len );
-		stream.write( sessionID );
+		stream.write( sessionId );
 	}
 
 	//--- Operator ---//
@@ -100,13 +101,13 @@ typedef struct header {
 		type = h.type;
 		func = h.func;
 		len	= h.len;
-		sessionID = h.sessionID;
+		sessionId = h.sessionId;
 
 		return *this;
 	}
 
 	friend std::ostream& operator<<( std::ostream& os , const struct header& h ) {
-		return os << "[" << to_string( h.type )<< "] [" << to_string( h.func ) << "] [" << to_string( h.len ) << "]  [" << to_string( h.sessionID ) << "]";
+		return os << "[" << to_string( h.type )<< "] [" << to_string( h.func ) << "] [" << to_string( h.len ) << "]  [" << to_string( h.sessionId ) << "]";
 	}
 
 

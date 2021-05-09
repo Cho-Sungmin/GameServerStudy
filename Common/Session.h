@@ -24,13 +24,13 @@ public:
 		m_socket = socket;
 	}
 
-	Session( const Session& session )
+	Session( const Session &session )
 	{
 		m_socket = session.m_socket;
 		m_userInfo = session.m_userInfo;
 	}
 
-	Session( Session&& session )
+	Session( Session &&session )
 	{
 		std::cout << "Move_Constructor" << std::endl;
 
@@ -70,7 +70,7 @@ public:
 		m_pHBTimer->awake(); 
 	}
 
-	int getSessionID() const
+	int getSessionId() const
 	{
 		return m_socket;
 	}
@@ -78,7 +78,7 @@ public:
 
 	//--- Operator ---//
 		
-	void operator=( const Session& session )
+	void operator=( const Session &session )
 	{
 		m_socket = session.m_socket;
 		m_userInfo = session.m_userInfo;
@@ -87,7 +87,7 @@ public:
 };
 
 
-bool operator==( const Session& session , const Session& _session )
-{	return session.getSessionID() == _session.getSessionID();	}
+bool operator==( const Session &session , const Session &_session )
+{	return session.getSessionId() == _session.getSessionId();	}
 
 #endif

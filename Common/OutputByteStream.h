@@ -75,7 +75,7 @@ void OutputByteStream::write( string in )
 void OutputByteStream::write( const void* in , int size )
 {
     if( size > capacity - getLength() )
-        reallocBuffer( max( capacity*2 , (uint32_t)size ) );
+        reallocBuffer( max( capacity*2 , size ) );
         
     memcpy( buffer + cursor , in , size );
     cursor += size;

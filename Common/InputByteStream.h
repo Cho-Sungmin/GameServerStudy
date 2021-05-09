@@ -1,7 +1,6 @@
 #ifndef INPUT_BYTE_STREAM_H
 #define INPUT_BYTE_STREAM_H
 
-#include <string>
 #include <string.h>
 #include <type_traits>
 
@@ -13,7 +12,7 @@ using namespace std;
 class InputByteStream : public ByteStream {
 public:
     InputByteStream() = default;
-    InputByteStream( uint32_t maxBufferSize );
+    InputByteStream( int maxBufferSize );
     InputByteStream( ByteStream& bstream );
     InputByteStream( const InputByteStream& ibstream );
     InputByteStream( InputByteStream&& ibstream );
@@ -88,7 +87,7 @@ void InputByteStream::read( string& out )
 }
 
 //--- Constructor ---//
-InputByteStream::InputByteStream( uint32_t maxBufferSize )
+InputByteStream::InputByteStream( int maxBufferSize )
 {
     capacity = maxBufferSize;
     buffer = (char*) malloc( capacity );

@@ -12,11 +12,11 @@
 
 using namespace std;
 
-UserRedis* UserRedis::pInstance;
+UserRedis *UserRedis::pInstance;
 
 int main()
 {
-	UserRedis* pRedis = UserRedis::getInstance();
+	UserRedis *pRedis = UserRedis::getInstance();
 	UserDB userDB( pRedis );
 
 	ServerAdaptor<SelectIOServer> server;
@@ -79,8 +79,9 @@ int main()
 			case INPUT :	// Got messages
 
 				try {
+					void *pParams[1] = { &sessionMgr };
 					msgHandler.inputHandler( clntSocket );
-					msgProc.processMSG( &sessionMgr );
+					msgProc.processMSG( pParams );
 					sessionMgr.refresh( clntSocket );	// Reset timer
 				}
 				catch( TCP::Connection_Ex e )
@@ -97,17 +98,17 @@ int main()
 			{
 				//--- Set invalid sessions free ---//
 				try{
-					const list<Session>& sessionList = sessionMgr.getSessionList();
+					const list<Session*>& sessionList = sessionMgr.getSessionList();
 
-					for( auto session_ref : sessionList )
+					for( auto pSession : sessionList )
 					{
-						if( sessionMgr.validationCheck( session_ref ) == false )
+						if( sessionMgr.validationCheck( *pSession ) == false )
 						{	
-							int invalidSessionID = session_ref.getSessionID();
+							int invalidSessionId = pSession->getSessionId();
 
 							//--- Set free ---//
-							sessionMgr.expired( invalidSessionID );
-							server.farewell( invalidSessionID );
+							sessionMgr.expired( invalidSessionId );
+							server.farewell( invalidSessionId );
 						}
 					}
 				}

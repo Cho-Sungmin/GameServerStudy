@@ -9,7 +9,6 @@
 #include "JsonParser.h"
 
 using namespace std;
-using namespace Room;
 
 class UserRedis : public Redis {
     bool m_isConn = false;
@@ -108,9 +107,9 @@ static UserRedis *pInstance;
             return false;
     }
 
-    bool lpushRoomList( const RoomSchema& room )
+    bool lpushRoomList( const Room& room )
     {
-        list<string> values = { room.id , to_string(room.capacity) , to_string(room.presentMembers) , room.title };
+        list<string> values = { room.roomId , to_string(room.capacity) , to_string(room.presentMembers) , room.title };
 
         string cmd = "LPUSH room_list ";
 
@@ -126,14 +125,14 @@ static UserRedis *pInstance;
 
     }
 
-    const list<RoomSchema> lrangeRoomList()
+    const list<Room> lrangeRoomList()
     {
         const char *cmd = "LRANGE room_list 0 -1";
         const list<string> roomList = lrangeCommand( cmd );
-        list<RoomSchema> results;
+        list<Room> results;
 
         list<string> elements;
-        RoomSchema room;
+        Room room;
 
         for( auto str : roomList )
         {
@@ -149,7 +148,7 @@ static UserRedis *pInstance;
                 values.push_back( element );
             }
 
-            room.id = values.front();
+            room.roomId = values.front();
             values.pop_front();
             room.capacity = Parser::strToInt( values.front() );
             values.pop_front();
@@ -221,9 +220,9 @@ static UserRedis *pInstance;
             return false;
     }
 
-    bool hmsetNewRoom( const RoomSchema& room )
+    bool hmsetNewRoom( const Room& room )
     {
-        const string& id = " " + room.id;
+        const string& id = " " + room.roomId;
         const string& capacity = " capacity " + to_string( room.capacity );
         const string& members = " presentMembers " + to_string( room.presentMembers );
         const string& title = " title " + room.title;
@@ -237,13 +236,13 @@ static UserRedis *pInstance;
         return result;
     }
 
-    void hmgetRoom( RoomSchema& room )
+    void hmgetRoom( Room& room )
     {
-        const string& cmd = "HMGET " + room.id + " capacity presentMembers title" ;
+        const string& cmd = "HMGET " + room.roomId + " capacity presentMembers title" ;
         string result = hmgetCommand( cmd.c_str() );
 
         if( result == "" )
-            room.id = "";
+            room.roomId = "";
         else
         {
             list<string> resultList = Parser::tokenize( result , ',' );

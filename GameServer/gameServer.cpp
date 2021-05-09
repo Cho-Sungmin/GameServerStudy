@@ -1,61 +1,65 @@
 #include <iostream>
 #include <list>
 
-
 #include "SelectIOServer.h"
 #include "ServerAdaptor.h"
-#include "SessionManager.h"
+#include "RoomManager.h"
 #include "MessageHandler.h"
 #include "MessageProcessor.h"
+
+#include "UserDB.h"
+#include "UserRedis.h"
+
+using namespace std;
+
 
 UserRedis *UserRedis::pInstance;
 
 int main()
 {
 	UserRedis *pRedis = UserRedis::getInstance();
-	//UserDB	userDB( pRedis );
-
+	UserDB userDB( pRedis );
 
 	ServerAdaptor<SelectIOServer> server;
 	SessionManager sessionMgr;
 	MessageQueue msgQ;
+	list<RoomManager> roomList;
 
-	MessageHandler msgHandler( msgQ , "LobbyServer" );
-	MessageProcessor msgProc( msgQ , "LobbyServer" );
+	MessageHandler msgHandler( msgQ , "GameServer" );
+	MessageProcessor msgProc( msgQ , "GameServer" );
 
-	int	result	= 0	;
-
+	int	result = 0;
 
 	//--- Register handlers ---//
-	//msgProc.registerProcedure( userDB );
+	msgProc.registerProcedure( userDB );
 	msgProc.registerProcedure( msgHandler );
 
-	//--- Server work ---//
-	server.init("1066");
+	//--- Init server ---//
+	server.init("9933");
 	server.ready();
 
 	//--- Database Connection ---//
-	//userDB.init();
 	try {
 		pRedis->connect();
-		std::cout << "[SUCC] Redis connection" << std::endl;
+		cout << "[SUCC] Redis connection" << endl;
+		userDB.init();
 	}
 	catch( RedisException::Connection_Ex e )
 	{
-		std::cout << e.what() << std::endl;
+		cout << e.what() << endl;
 	}
 	
 	
 	while( server.getState() != STOP ) 
 	{
-		int clntSocket = -1;
+		int	clntSocket = -1;
 		struct sockaddr_in addr;
 		
 		try {
 			result = server.run( reinterpret_cast<void*>(&clntSocket) , reinterpret_cast<void*>(&addr) );
 		} 
 		catch( Select_Ex e ) {
-			std::cout << e.what() << std::endl;
+			cout << e.what() << endl;
 			continue;
 		}
 		
@@ -69,59 +73,56 @@ int main()
 				break;
 
 			case ACCEPT :	// Connection
-
-				msgHandler.acceptHandler( sessionMgr , clntSocket , std::string( "[ SUCC ] Connect to LobbyServer" ) );
+				msgHandler.acceptHandler( sessionMgr , clntSocket , string( "[ SUCC ] Connect to GameServer" ) );
 				msgProc.processMSG();
 				break;
 
 			case INPUT :	// Got messages
 
 				try {
-					void *pParams[2] = { &sessionMgr };
+					void *pParams[2] = { &sessionMgr , &roomList };
 					msgHandler.inputHandler( clntSocket );
 					msgProc.processMSG( pParams );
 					sessionMgr.refresh( clntSocket );	// Reset timer
 				}
 				catch( TCP::Connection_Ex e )
 				{
-					std::cout << e.what() << std::endl;
+					cout << e.what() << endl;
 
 					//--- Set free ---//
-					sessionMgr.expired ( clntSocket );
-					server.farewell ( clntSocket );
+					sessionMgr.expired( clntSocket );
+					server.farewell( clntSocket );
 				}
+
+				
 				break;
 
 			case INTR :	// Signal after HB_Timer handler called
 			{
 				//--- Set invalid sessions free ---//
 				try{
-					const std::list<Session*>& sessionList = sessionMgr.getSessionList();
+					const list<Session*> &sessionList = sessionMgr.getSessionList();
 
 					for( auto pSession : sessionList )
 					{
 						if( sessionMgr.validationCheck( *pSession ) == false )
 						{	
-							int invalidSessionId = pSession->getSessionId();
+							int invalidSessionID = pSession->getSessionId();
 
 							//--- Set free ---//
-							sessionMgr.expired( invalidSessionId );
-							server.farewell( invalidSessionId );
+							sessionMgr.expired( invalidSessionID );
+							server.farewell( invalidSessionID );
 						}
 					}
 				}
-				catch( Not_Found_Ex e ) {
-					cout << "[main] " << e.what() << endl;
-				}
+				catch( Not_Found_Ex e ) { }
 			}
-			default :	// Undefined
+			default	:	// Undefined
 				break;
 		}
-
-
 	}
 
-	//userDB.destroy();
+	userDB.destroy();
 
 	return 0;
 }

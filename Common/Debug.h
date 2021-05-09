@@ -94,7 +94,7 @@ private:
         const string type_str = getTypeString( header.type );
         const string func_str = getFuncString( header.func );
         const string len_str = to_string( header.len );
-        const string id_str = to_string( header.sessionID );
+        const string id_str = to_string( header.sessionId );
     
         string result =     "[" + type_str + "]" +
                             "[" + func_str + "]" +

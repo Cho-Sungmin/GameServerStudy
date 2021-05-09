@@ -9,11 +9,13 @@
 #include "TCP.h"
 #include "Server.h"
 
-
-#define INTR        0
-#define INVALID     INTR	+ 1
-#define ACCEPT      INVALID	+ 1
-#define INPUT       ACCEPT	+ 1
+enum EventType {
+	INTR = 0,
+	INVALID,
+	ACCEPT,
+	INPUT,
+	MAX
+};
 
 
 class Select_Ex : public std::exception {
@@ -35,7 +37,7 @@ public:
 class SelectIOServer : public Server {
 
 	fd_set m_readfds;
-    int m_fdMax	= 0;
+    uint32_t m_fdMax = 0;
 	int	m_state	= STOP;
 
 

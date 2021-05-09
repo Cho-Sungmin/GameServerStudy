@@ -5,8 +5,8 @@
 
 class ByteStream {
 protected:
-    uint32_t cursor = 0;    // Pointing index of buffer to be read next
-    uint32_t capacity = 0;
+    int cursor = 0;    // Pointing index of buffer to be read next
+    int capacity = 0;
     char* buffer = nullptr;
 
 public:

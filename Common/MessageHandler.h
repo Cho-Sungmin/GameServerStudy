@@ -11,13 +11,16 @@
 #include "Parser.h"
 #include "UserRedis.h"
 #include "Debug.h"
+#include "RoomManager.h"
+
+using namespace std;
 
 
 class MessageHandler {
 
 	const string m_logFileName;
-	MessageQueue& 	m_msgQ;
-	LOG* m_pLog;
+	MessageQueue &m_msgQ;
+	LOG *m_pLog;
 
 public:
 
@@ -25,7 +28,7 @@ public:
 
 	MessageHandler() = default;
 
-	MessageHandler( MessageQueue& queue , const string& fileName )
+	MessageHandler( MessageQueue &queue , const string &fileName )
 					: 	m_msgQ( queue ),
 				 		m_logFileName( fileName )
 	{
@@ -37,7 +40,7 @@ public:
 
 	//--- Functions ---//
 
-	void acceptHandler( SessionManager& sessionMgr , int clntSocket , const std::string& welcomeMSG = "" )
+	void acceptHandler( SessionManager &sessionMgr , int clntSocket , const string &welcomeMSG = "" )
 	{
 		// Set a new session //
 		sessionMgr.newSession( clntSocket );
@@ -100,32 +103,32 @@ public:
 
 	void onHeartbeat()
 	{
-		//std::cout << "<<< [HB]  -^-v-^-" << std::endl;		
+		//cout << "<<< [HB]  -^-v-^-" << endl;		
 	}
 
-	void onRequest( InputByteStream& msg )
+	void onRequest( InputByteStream &msg )
 	{
 		m_msgQ.enqueue( move( msg ) );
 	}
 
-	void onSignIn( const string& id , const std::string& pw )
+	void onSignIn( const string &id , const string &pw )
 	{
 		
 	}
 
-	void resCreateNewRoom( void* lParam , void* rParam )
+	void resCreateNewRoom( void *lParam , void *rParam )
 	{
 
 	}
 
-	void resEnterRoom( void* lParam , void* rParam )
+	void resEnterRoom( void **inParams , void **outParams )
     {
-        InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( lParam );
-		SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
+		SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( inParams[0] );
+        InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( outParams[0] );	
 		Header header; header.read( *pPacket );
 
 		try{
-			Session& session = pSessionMgr->getSessionById( header.sessionID );     // To update user information in the session, if it's verified user.
+			Session &session = pSessionMgr->getSessionById( header.sessionId );     // To update user information in the session, if it's verified user.
 
 			//--- Extract userInfo from message ---//
 			UserInfo userInfo;      // User information from REQ_MSG.
@@ -170,14 +173,14 @@ public:
         }
     }
 
-	void resRoomList( void* lParam , void* rParam )
+	void resRoomList( void **inParams , void **outParams )
     {
-        InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( lParam );
-		SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
+        InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( outParams[0] );
+		//SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
 		Header header; header.read( *pPacket );
         
 		//--- Result from redis LRANGE command ---//
-        const list<RoomSchema> result = UserRedis::getInstance()->lrangeRoomList();
+        const list<Room> result = UserRedis::getInstance()->lrangeRoomList();
 
 		header.type = PACKET_TYPE::RES;
 
@@ -210,30 +213,73 @@ public:
 		*pPacket = InputByteStream( resPacket );
     }
 
-	void resJoinGame( void* lParam , void* rParam )
+	void resJoinGame( void **inParams , void **outParams )
 	{
-		InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( lParam );
-		SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
-		Header header;
-		header.read( *pPacket );
+		SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( inParams[0] );
+		list<RoomManager> *pRoomList = reinterpret_cast<list<RoomManager>*>( inParams[1] );
+		InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( outParams[0] );
+		Header header; header.read( *pPacket );
 
-		//--- Extract userInfo from message ---//
-        UserInfo userInfo;      // User information from REQ_MSG.
-        userInfo.read( *pPacket );
-        
+		//--- Extract room id from message ---//
+        string roomId;
+        pPacket->read( roomId );
+
+		//--- Extract user id from message ---//
+        string userId;
+        pPacket->read( userId );
+
+		UserInfo userInfo;
+		userInfo.setId( userId );
+  
 		//--- Result from redis HMGET command ---//
 		UserRedis::getInstance()->hmgetUserInfo( userInfo );
 
-		// *** TODO : 해당 Room의 세션포인터 세팅 ---//
+		//--- Update session's pointer in the room list ---//
+		bool result = false;
 
+		for( auto &itr : *pRoomList)
+		{
+			if( itr.isEqual( roomId ) )
+			{
+				itr.acceptSession( pSessionMgr->getSessionById( header.sessionId ) );
+				result = true;
+
+				break;
+			}
+		}
+
+		header.type = PACKET_TYPE::RES;
+		OutputByteStream resPacket( TCP::MPS );
+	
+        //--- CASE : The request is VALID ---//
+        if( result )
+        {
+			//--- Set response packet ---//
+			OutputByteStream payload( TCP::MPS );
+			//--- TODO : Payload ---//
+
+			header.len = payload.getLength();
+			header.func = FUNCTION_CODE::RES_JOIN_GAME_SUCCESS;
+
+			header.write( resPacket );
+			resPacket << payload;
+        }
+        //--- CASE : The request is INVALID ---//
+        else
+        {
+            header.func = FUNCTION_CODE::RES_JOIN_GAME_FAIL;
+			header.len = 0;
+			header.write( resPacket );
+        }
 		
+		*pPacket = InputByteStream( resPacket );
 	}
-	void resMakeRoom( void* lParam , void* rParam )
+	void resMakeRoom( void **inParams , void **outParams )
 	{
-		InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( lParam );
+		list<RoomManager> *pRoomList = reinterpret_cast<list<RoomManager>*>( inParams[0] );
+		InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( outParams[0] );	
 		Header header; header.read( *pPacket );
-		
-		RoomSchema room; room.read( *pPacket );
+		Room room; room.read( *pPacket );
 
 		if( UserRedis::getInstance()->hmsetNewRoom( room ) == true )
 			UserRedis::getInstance()->hmgetRoom( room );
@@ -248,12 +294,13 @@ public:
 		OutputByteStream resPacket( Header::SIZE + header.len );
 
         //--- CASE : The request is valid ---//
-        if( room.id != "" )
+        if( room.roomId != "" )
         {
+			//--- Add new room in the list ---//
+			pRoomList->emplace_back(room);
 			header.func = FUNCTION_CODE::RES_MAKE_ROOM_SUCCESS;
 			header.write( resPacket );
 			resPacket << payload;
-            
         }
 		//--- CASE : The request is invalid ---//
 		else
@@ -268,38 +315,36 @@ public:
 	}
 
 
-	void registerHandler( std::map  <
-                                        int , function< void(void*,void*) > 
-                                    >& h_map )
+	void registerHandler( map<int , function<void(void**,void**)>> &h_map )
     {
 
-        h_map.insert( std::make_pair( (int)FUNCTION_CODE::REQ_ENTER_LOBBY , 
-                                        [this](void* l , void* r) 
+        h_map.insert( make_pair( (int)FUNCTION_CODE::REQ_ENTER_LOBBY , 
+                                        [this](void **in , void **out) 
                                         { 
-                                            this->resEnterRoom(l,r); 
+                                            this->resEnterRoom(in,out); 
                                         } 
                                     ) 
                     );
-		h_map.insert( std::make_pair( (int)FUNCTION_CODE::REQ_JOIN_GAME , 
-										[this](void* l , void* r) 
+		h_map.insert( make_pair( (int)FUNCTION_CODE::REQ_JOIN_GAME , 
+										[this](void **in , void **out) 
 										{ 
-											this->resJoinGame(l,r); 
+											this->resJoinGame(in,out); 
 										} 
 									) 
 					);
 
-		h_map.insert( std::make_pair( (int)FUNCTION_CODE::REQ_ROOM_LIST , 
-										[this](void* l , void* r) 
+		h_map.insert( make_pair( (int)FUNCTION_CODE::REQ_ROOM_LIST , 
+										[this](void **in , void **out) 
 										{ 
-											this->resRoomList(l,r); 
+											this->resRoomList(in,out); 
 										} 
 									) 
 					);
 
-		h_map.insert( std::make_pair( (int)FUNCTION_CODE::REQ_MAKE_ROOM , 
-                                        [this](void* l , void* r) 
+		h_map.insert( make_pair( (int)FUNCTION_CODE::REQ_MAKE_ROOM , 
+                                        [this](void **in , void **out) 
                                         { 
-                                            this->resMakeRoom(l,r); 
+                                            this->resMakeRoom(in,out); 
                                         } 
                                     ) 
                     );
