@@ -4,26 +4,30 @@
 
 #include "SelectIOServer.h"
 #include "ServerAdaptor.h"
+#include "Session.h"
 #include "SessionManager.h"
-#include "MessageHandler.h"
+#include "RoomMessageHandler.h"
 #include "MessageProcessor.h"
+#include "UserRedis.h"
+
+using namespace std;
 
 UserRedis *UserRedis::pInstance;
+
 
 int main()
 {
 	UserRedis *pRedis = UserRedis::getInstance();
 	//UserDB	userDB( pRedis );
 
-
 	ServerAdaptor<SelectIOServer> server;
 	SessionManager sessionMgr;
 	MessageQueue msgQ;
 
-	MessageHandler msgHandler( msgQ , "LobbyServer" );
+	RoomMessageHandler msgHandler( msgQ , "LobbyServer" );
 	MessageProcessor msgProc( msgQ , "LobbyServer" );
 
-	int	result	= 0	;
+	int	result = 0;
 
 
 	//--- Register handlers ---//
@@ -38,13 +42,13 @@ int main()
 	//userDB.init();
 	try {
 		pRedis->connect();
-		std::cout << "[SUCC] Redis connection" << std::endl;
 	}
 	catch( RedisException::Connection_Ex e )
 	{
-		std::cout << e.what() << std::endl;
+		// TODO : Reconnection routine //
+		cout << "Process terminate" << endl;
+		return 0;
 	}
-	
 	
 	while( server.getState() != STOP ) 
 	{
@@ -55,10 +59,10 @@ int main()
 			result = server.run( reinterpret_cast<void*>(&clntSocket) , reinterpret_cast<void*>(&addr) );
 		} 
 		catch( Select_Ex e ) {
-			std::cout << e.what() << std::endl;
+			LOG::getInstance()->printLOG( "EXCEPT" , "WARN" , e.what() );
+			LOG::getInstance()->writeLOG( "EXCEPT" , "WARN" , e.what() );
 			continue;
 		}
-		
 
 		//--- Event handling ---//
 		switch( result ) {
@@ -70,7 +74,7 @@ int main()
 
 			case ACCEPT :	// Connection
 
-				msgHandler.acceptHandler( sessionMgr , clntSocket , std::string( "[ SUCC ] Connect to LobbyServer" ) );
+				msgHandler.acceptHandler( sessionMgr , clntSocket , string( "LobbyServer" ) );
 				msgProc.processMSG();
 				break;
 
@@ -84,8 +88,6 @@ int main()
 				}
 				catch( TCP::Connection_Ex e )
 				{
-					std::cout << e.what() << std::endl;
-
 					//--- Set free ---//
 					sessionMgr.expired ( clntSocket );
 					server.farewell ( clntSocket );
@@ -96,11 +98,11 @@ int main()
 			{
 				//--- Set invalid sessions free ---//
 				try{
-					const std::list<Session*>& sessionList = sessionMgr.getSessionList();
+					const list<Session*>& sessionList = sessionMgr.getSessionList();
 
 					for( auto pSession : sessionList )
 					{
-						if( sessionMgr.validationCheck( *pSession ) == false )
+						if( sessionMgr.validationCheck( pSession ) == false )
 						{	
 							int invalidSessionId = pSession->getSessionId();
 
@@ -111,7 +113,6 @@ int main()
 					}
 				}
 				catch( Not_Found_Ex e ) {
-					cout << "[main] " << e.what() << endl;
 				}
 			}
 			default :	// Undefined

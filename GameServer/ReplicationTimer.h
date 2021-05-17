@@ -2,9 +2,13 @@
 #define REPLICATION_TIMER_H
 
 #include "Timer.h"
+#include "RoomManager.h"
+#include "ReplicationManager.h"
+#include <list>
 
 class ReplicationTimer : public Timer {
     int	m_fd = -1;
+	RoomManager &m_roomMgr;
 public:
 	static void handler( int signo , siginfo_t *pInfo , void *uc );
 
@@ -12,9 +16,10 @@ public:
 	
 	ReplicationTimer() = default; 
 
-	ReplicationTimer( int _fd , int sec=0 , int nsec=100000000 )    // 100ms
-			:  Timer(sec , nsec) , m_fd(_fd)
+	ReplicationTimer( RoomManager &roomMgr , int _fd , int sec=0 , int nsec=100000000 )    // 100ms
+			:  Timer(sec , nsec) , m_fd(_fd) , m_roomMgr(roomMgr)
 	{
+
 		struct sigaction action;
 
 		action.sa_flags	= SA_SIGINFO;
@@ -32,6 +37,31 @@ public:
 
 void ReplicationTimer::handler( int signo , siginfo_t *pInfo , void *uc )
 {
-    // TODO : //
+	ReplicationTimer *pRepTimer = reinterpret_cast<ReplicationTimer*>( pInfo->si_value.sival_ptr );
+
+	RoomManager& roomMgr = pRepTimer->m_roomMgr;
+	list<GameObject*> &gameObjects = roomMgr.getGameObjects();
+	ReplicationManager &repMgr = roomMgr.m_replicationMgr;
+
+	for( auto obj : gameObjects )
+	{
+		OutputByteStream payload( TCP::MPS );
+		repMgr.replicateUpdate( payload , obj );
+
+		Header header;
+		header.type = PACKET_TYPE::REQ;
+		header.func = FUNCTION_CODE::REQ_REPLICATION;
+		header.len = payload.getLength();
+
+		OutputByteStream packet( TCP::MPS );
+		header.write( packet );
+		packet << payload;
+
+		InputByteStream ibstream( &packet );
+		
+		TCP::send_packet( pRepTimer->m_fd , ibstream );
+		
+		ibstream.close();
+	}
 }
 #endif

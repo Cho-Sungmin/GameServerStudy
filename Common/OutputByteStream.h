@@ -13,14 +13,15 @@ class OutputByteStream : public ByteStream {
 public:
     OutputByteStream() = default;
     OutputByteStream( uint32_t maxBufferSize );
-    OutputByteStream( ByteStream& ibstream );
-    void write( const void* in , int size );
+    OutputByteStream( ByteStream *pStream );
+    void write( const void *in , int size );
 template <typename T>
     void write( T in );
+
     void reallocBuffer( int newSize );
     virtual int getLength() const;
 
-    OutputByteStream& operator=( const OutputByteStream& obstream )
+    OutputByteStream& operator=( const OutputByteStream &obstream )
     {
         cursor = obstream.cursor;
         capacity = obstream.capacity;
@@ -29,7 +30,7 @@ template <typename T>
         return *this;
     }
 
-    OutputByteStream& operator<<( OutputByteStream& obstream )
+    OutputByteStream& operator<<( OutputByteStream &obstream )
     {
         write( obstream.getBuffer() , obstream.getLength() );
         obstream.close();
@@ -38,22 +39,6 @@ template <typename T>
     }
 
 };
-
-OutputByteStream::OutputByteStream( uint32_t maxBufferSize )
-{
-    capacity = maxBufferSize;
-    buffer = (char*) malloc( capacity );
-}
-
-OutputByteStream::OutputByteStream( ByteStream& bstream )
-{
-    capacity = bstream.getLength();
-    buffer = (char*) malloc( capacity );
-
-    write( bstream.getBuffer() , capacity );
-
-    bstream.close();
-}
 
 template <typename T>
 void OutputByteStream::write( T in )
@@ -65,34 +50,6 @@ void OutputByteStream::write( T in )
 }
 
 template <>
-void OutputByteStream::write( string in )
-{
-    int len = in.length();
-    write( len );
-    write( in.c_str() , len );
-}
-
-void OutputByteStream::write( const void* in , int size )
-{
-    if( size > capacity - getLength() )
-        reallocBuffer( max( capacity*2 , size ) );
-        
-    memcpy( buffer + cursor , in , size );
-    cursor += size;
-}
-
-void OutputByteStream::reallocBuffer( int newSize )
-{
-    char *tmp = (char*) malloc( newSize );
-
-    memcpy( tmp , buffer , getLength() );
-    free( buffer );
-    buffer = tmp;
-}
-
-int OutputByteStream::getLength() const
-{ return cursor; }
-
-
+    void OutputByteStream::write( string in );
 
 #endif

@@ -3,6 +3,7 @@
 
 #include "SelectIOServer.h"
 #include "ServerAdaptor.h"
+#include "Session.h"
 #include "SessionManager.h"
 #include "MessageHandler.h"
 #include "MessageProcessor.h"
@@ -39,12 +40,13 @@ int main()
 	//--- Database Connection ---//
 	try {
 		pRedis->connect();
-		cout << "[SUCC] Redis connection" << endl;
 		userDB.init();
 	}
 	catch( RedisException::Connection_Ex e )
 	{
-		cout << e.what() << endl;
+		// TODO : Reconnection routine //
+		cout << "Process terminate" << endl;
+		return 0;
 	}
 	
 	
@@ -57,7 +59,8 @@ int main()
 			result = server.run( reinterpret_cast<void*>(&clntSocket) , reinterpret_cast<void*>(&addr) );
 		} 
 		catch( Select_Ex e ) {
-			cout << e.what() << endl;
+			LOG::getInstance()->printLOG( "EXCEPT" , "ERROR" , e.what() );
+			LOG::getInstance()->writeLOG( "EXCEPT" , "ERROR" , e.what() );
 			continue;
 		}
 		
@@ -72,7 +75,7 @@ int main()
 
 			case ACCEPT :	// Connection
 
-				msgHandler.acceptHandler( sessionMgr , clntSocket , string( "[ SUCC ] Connect to LoginServer" ) );
+				msgHandler.acceptHandler( sessionMgr , clntSocket , string( "LoginServer" ) );
 				msgProc.processMSG();
 				break;
 
@@ -86,8 +89,6 @@ int main()
 				}
 				catch( TCP::Connection_Ex e )
 				{
-					cout << e.what() << endl;
-
 					//--- Set free ---//
 					sessionMgr.expired( clntSocket );
 					server.farewell( clntSocket );
@@ -102,7 +103,7 @@ int main()
 
 					for( auto pSession : sessionList )
 					{
-						if( sessionMgr.validationCheck( *pSession ) == false )
+						if( sessionMgr.validationCheck( pSession ) == false )
 						{	
 							int invalidSessionId = pSession->getSessionId();
 
@@ -113,7 +114,6 @@ int main()
 					}
 				}
 				catch( Not_Found_Ex e ) {
-					cout << "[main] " << e.what() << endl;
 				}
 			}
 			default	:	// Undefined

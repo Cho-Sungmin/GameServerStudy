@@ -7,33 +7,22 @@
 #include <iostream>
 
 class Session {
-
+protected:
 	int	m_socket = -1;
-
 public:
-
 	UserInfo m_userInfo	;
 	HB_Timer *m_pHBTimer = nullptr;
 
-	//--- Constructor ---//
-
+	//--- Constructors ---//
 	Session() = default;
-
-	Session( int socket )
-	{
-		m_socket = socket;
-	}
-
+	Session( int socket ) : m_socket(socket) { }
 	Session( const Session &session )
 	{
 		m_socket = session.m_socket;
 		m_userInfo = session.m_userInfo;
 	}
-
 	Session( Session &&session )
 	{
-		std::cout << "Move_Constructor" << std::endl;
-
 		m_socket = session.m_socket;
 		m_userInfo = session.m_userInfo;
 		m_pHBTimer = session.m_pHBTimer;
@@ -42,13 +31,10 @@ public:
 	}
 
 	//--- Destructor ---//
-
-	~Session()
+	virtual ~Session()
 	{
 		if( m_pHBTimer != nullptr ) 
 		{
-			std::cout << "Destructor" << std::endl;
-
 			if( m_pHBTimer->getState() != TIMER_SLEEP )
 				m_pHBTimer->asleep();
 
@@ -57,37 +43,12 @@ public:
 	}
 
 	//--- Functions ---//
-
-	void init( )
-	{
-		m_pHBTimer = new HB_Timer( m_socket );
-		m_pHBTimer->awake(); 
-	}
-
-	void init( int sec , int nsec )
-	{
-		m_pHBTimer = new HB_Timer( m_socket , sec , nsec );
-		m_pHBTimer->awake(); 
-	}
-
-	int getSessionId() const
-	{
-		return m_socket;
-	}
-
-
+	void init( int sec=3 , int nsec=0 );
+	virtual void startTimers();	
+	virtual void stopTimers();	
+	int getSessionId() const;	
 	//--- Operator ---//
-		
-	void operator=( const Session &session )
-	{
-		m_socket = session.m_socket;
-		m_userInfo = session.m_userInfo;
-	}
-
+	void operator=( const Session &session );
 };
-
-
-bool operator==( const Session &session , const Session &_session )
-{	return session.getSessionId() == _session.getSessionId();	}
 
 #endif

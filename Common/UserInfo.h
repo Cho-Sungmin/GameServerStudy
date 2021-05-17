@@ -3,6 +3,8 @@
 
 #include "string.h"
 #include <string>
+#include "InputByteStream.h"
+#include "OutputByteStream.h"
 
 
 using namespace std;
@@ -19,7 +21,7 @@ public:
 
     UserInfo() = default;
 
-    void read( InputByteStream& ibstream )
+    void read( InputByteStream &ibstream )
     {
         ibstream.read( id );
         ibstream.read( pw );
@@ -27,7 +29,7 @@ public:
         ibstream.read( age );
     }
 
-    void write( OutputByteStream& obstream )
+    void write( OutputByteStream &obstream )
     {
         obstream.write( id );
         obstream.write( pw );
@@ -58,16 +60,16 @@ public:
     int getAge() const
     { return age; }
 
-    void setId( const string& newId )
+    void setId( const string &newId )
     { id = newId; }
 
-    void setPw( const string& newPw )
+    void setPw( const string &newPw )
     { pw = newPw; }
 
-    void setName( const string& newName )
+    void setName( const string &newName )
     { name = newName; }
 
-    void setAge( int newAge )
+    void setAge( int8_t newAge )
     { age = newAge; }
 
 };

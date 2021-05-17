@@ -4,8 +4,9 @@
 #include "SelectIOServer.h"
 #include "ServerAdaptor.h"
 #include "RoomManager.h"
-#include "MessageHandler.h"
+#include "GameMessageHandler.h"
 #include "MessageProcessor.h"
+#include "Session.h"
 
 #include "UserDB.h"
 #include "UserRedis.h"
@@ -25,7 +26,7 @@ int main()
 	MessageQueue msgQ;
 	list<RoomManager> roomList;
 
-	MessageHandler msgHandler( msgQ , "GameServer" );
+	GameMessageHandler msgHandler( msgQ , "GameServer" );
 	MessageProcessor msgProc( msgQ , "GameServer" );
 
 	int	result = 0;
@@ -41,12 +42,13 @@ int main()
 	//--- Database Connection ---//
 	try {
 		pRedis->connect();
-		cout << "[SUCC] Redis connection" << endl;
 		userDB.init();
 	}
 	catch( RedisException::Connection_Ex e )
 	{
-		cout << e.what() << endl;
+		// TODO : Reconnection routine //
+		cout << "Process terminate" << endl;
+		return 0;
 	}
 	
 	
@@ -73,7 +75,7 @@ int main()
 				break;
 
 			case ACCEPT :	// Connection
-				msgHandler.acceptHandler( sessionMgr , clntSocket , string( "[ SUCC ] Connect to GameServer" ) );
+				msgHandler.acceptHandler( sessionMgr , clntSocket , string( "GameServer" ) );
 				msgProc.processMSG();
 				break;
 
@@ -87,8 +89,6 @@ int main()
 				}
 				catch( TCP::Connection_Ex e )
 				{
-					cout << e.what() << endl;
-
 					//--- Set free ---//
 					sessionMgr.expired( clntSocket );
 					server.farewell( clntSocket );
@@ -105,7 +105,7 @@ int main()
 
 					for( auto pSession : sessionList )
 					{
-						if( sessionMgr.validationCheck( *pSession ) == false )
+						if( sessionMgr.validationCheck( pSession ) == false )
 						{	
 							int invalidSessionID = pSession->getSessionId();
 
@@ -115,7 +115,8 @@ int main()
 						}
 					}
 				}
-				catch( Not_Found_Ex e ) { }
+				catch( Not_Found_Ex e ) { 
+				}
 			}
 			default	:	// Undefined
 				break;

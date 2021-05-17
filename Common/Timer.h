@@ -7,37 +7,37 @@
 
 class Awake_Ex : public std::exception {
 public:
-	virtual const char* what() const noexcept override {
+	virtual const char *what() const noexcept override {
 		return "awake() Exception!";
 	}
 };
 class Asleep_Ex : public std::exception {
 public:
-	virtual const char* what() const noexcept override {
+	virtual const char *what() const noexcept override {
 		return "asleep() Exception!";
 	}
 };
 class Start_Ex : public std::exception {
 public:
-	virtual const char* what() const noexcept override {
+	virtual const char *what() const noexcept override {
 		return "start() Exception!";
 	}
 };
 class Stop_Ex : public std::exception {
 public:
-	virtual const char* what() const noexcept override {
+	virtual const char *what() const noexcept override {
 		return "stop() Exception!";
 	}
 };
 class Handler_Ex : public std::exception {
 public:
-	virtual const char* what() const noexcept override {
+	virtual const char *what() const noexcept override {
 		return "handler() Exception!";
 	}
 };
 class Sig_Ex : public std::exception {
 public:
-	virtual const char* what() const noexcept override {
+	virtual const char *what() const noexcept override {
 		return "sigaction() Exception!";
 	}
 };
@@ -60,7 +60,6 @@ protected:
 	struct itimerspec m_spec;
 
 	//--- Constructor ---//
-
 	Timer( int sec=3 , int nsec=0 )
 	{
 		// Only for the 1st roop //
@@ -73,72 +72,11 @@ protected:
 
 public:
 	TimerState getState() const { return m_state; }	
-
-	void refresh()
-	{
-		stop();
-		start();
-	}
-
-	void awake()
-	{
-		if( m_state == TIMER_SLEEP )
-		{
-			if( timer_create( CLOCK_REALTIME , &m_event , &m_id ) == -1 ) {
-				throw Awake_Ex();
-			}else {
-				m_state = TIMER_AWAKEN;
-			}
-		}else {
-			std::cout << "Already awaken" << std::endl;
-		}
-
-	}
-	void asleep()
-	{
-		if( m_state != TIMER_SLEEP )
-		{
-			if( timer_delete( m_id ) == -1 ) {
-				throw Asleep_Ex();
-			}else {
-				m_state = TIMER_SLEEP;
-			}
-		}else {
-			std::cout << "Already asleep" << std::endl;
-		}
-	}
-
-	void start()
-	{
-		if( m_state != TIMER_SLEEP )
-		{
-			if( timer_settime( m_id , 0 , &m_spec , NULL ) == -1 )
-				throw Start_Ex();
-			else {
-				m_state = TIMER_WORKING;
-			}
-		} else {
-			std::cout << "Timer alseep" << std::endl; 	
-		}
-
-	}
-
-	void stop()
-	{
-		struct itimerspec spec = {0};
-		m_timeout = 0;
-
-		if( m_state != TIMER_SLEEP )
-		{
-			if( timer_settime( m_id , 0 , &spec , NULL ) == -1 )
-				throw Stop_Ex();
-			else {
-				m_state = TIMER_STOP;
-			}
-		}
-	}
-	
-	
+	void refresh();
+	void awake();
+	void asleep();
+	void start();
+	void stop();
 };
 
 

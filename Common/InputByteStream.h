@@ -1,10 +1,7 @@
 #ifndef INPUT_BYTE_STREAM_H
 #define INPUT_BYTE_STREAM_H
 
-#include <string.h>
 #include <type_traits>
-
-#include "Exception.h"
 #include "ByteStream.h"
 
 using namespace std;
@@ -13,8 +10,7 @@ class InputByteStream : public ByteStream {
 public:
     InputByteStream() = default;
     InputByteStream( int maxBufferSize );
-    InputByteStream( ByteStream& bstream );
-    InputByteStream( const InputByteStream& ibstream );
+    InputByteStream( ByteStream *pStream );
     InputByteStream( InputByteStream&& ibstream );
     void read( void* out , int size );
 template <typename T>
@@ -42,26 +38,8 @@ template <typename T>
 
         return *this;
     }
+
 };
-
-InputByteStream::InputByteStream( ByteStream& bstream )
-{
-    capacity = bstream.getLength();
-    buffer = (char*) malloc( capacity );
-
-    memcpy( buffer , bstream.getBuffer() , capacity );
-
-    bstream.close();
-}
-
-InputByteStream::InputByteStream( InputByteStream&& ibstream )
-{
-    cursor = ibstream.cursor;
-    capacity = ibstream.capacity;
-    buffer = ibstream.buffer;
-    
-    ibstream.buffer = nullptr;
-}
 
 template <typename T>
 void InputByteStream::read( T& out )
@@ -71,7 +49,9 @@ void InputByteStream::read( T& out )
     int size = sizeof( T );
     read( &out , size );
 }
-
+template <>
+void InputByteStream::read( string& out );
+#if 0
 template <>
 void InputByteStream::read( string& out )
 {
@@ -85,24 +65,6 @@ void InputByteStream::read( string& out )
     string str( buf );
     out = str;
 }
-
-//--- Constructor ---//
-InputByteStream::InputByteStream( int maxBufferSize )
-{
-    capacity = maxBufferSize;
-    buffer = (char*) malloc( capacity );
-}
-
-void InputByteStream::read( void* out , int size )
-{
-    if( size > getLength() )
-        throw out_of_range( "Out of range exception ===>> InputByteStream::read( " + to_string(size) + "/" + to_string(getLength()) + " )" );
-
-    memcpy( out , getBuffer() , size );
-    cursor += size;
-}
-
-char* InputByteStream::getBuffer() const
-{   return buffer + cursor;  }
+#endif
 
 #endif

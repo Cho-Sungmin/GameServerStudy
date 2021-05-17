@@ -4,20 +4,18 @@
 #include <string>
 #include <sstream>
 
-#include "UserInfo.h"
-
 using namespace std;
 
-namespace Parser {
-
-    void parseConfig( const string& target , string& result , const char& delim )
+class Parser {
+public:
+    static void parseConfig( const string &target , string &result , const char &delim )
     {
         int idx = target.find( delim );
 
         result = target.substr( idx + 1 );
     }
 
-    list<string> tokenize( const string& str , char delim )
+    static list<string> tokenize( const string &str , char delim )
     {
         list<string> result;
         int cursor = 0;
@@ -38,7 +36,7 @@ namespace Parser {
         return result;
     }
 
-    int findChar( const char str[] , const char c )
+    static int findChar( const char str[] , const char c )
     {
         for( int i=0; i<strlen(str); i++ )
         {
@@ -50,6 +48,27 @@ namespace Parser {
 
         return -1;
     }
+
+    static int strToInt( const string &str )
+    {
+        int number = 0;
+        stringstream ss( str );
+
+        ss >> number;
+
+        return number;
+    }
+
+    static int strToInt8( const string &str )
+    {
+        int8_t number = 0;
+        stringstream ss( str );
+
+        ss >> number;
+
+        return number;
+    }
+
     #if 0
     void parseJSON( char parsedData[] , const char jsonData[] )
     {
@@ -101,18 +120,8 @@ namespace Parser {
 
     }
     #endif
+};
 
-    int strToInt( const string& str )
-    {
-        int number = 0;
-        stringstream ss( str );
 
-        ss >> number;
-
-        return number;
-    }
-
-   
-}
 
 #endif

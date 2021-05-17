@@ -1,9 +1,9 @@
 #ifndef ROOM_H
 #define ROOM_H
 
-#include <list>
-
-#include "SessionManager.h"
+#include <string>
+#include "InputByteStream.h"
+#include "OutputByteStream.h"
 
 using namespace std;
 
@@ -13,10 +13,11 @@ struct Room {
     uint32_t presentMembers = 0;
     string title = "";
 
-    int getLength() 
+    
+    int getLength()
     { return roomId.length() + sizeof(int) + sizeof(int) + title.length(); }
 
-    void read( InputByteStream& ibstream )
+    void read( InputByteStream &ibstream )
     {
         ibstream.read( roomId );
         ibstream.read( capacity );
@@ -24,7 +25,7 @@ struct Room {
         ibstream.read( title );
     }
 
-    void write( OutputByteStream& obstream )
+    void write( OutputByteStream &obstream )
     {
         obstream.write( roomId );
         obstream.write( capacity );
@@ -33,7 +34,7 @@ struct Room {
     }
 
 #if false
-    void parseRoomInfo( Room& target , const char data[] , const char delim )
+    void parseRoomInfo( Room &target , const char data[] , const char delim )
     {
         const int LEN = 20;
         char tmp_str[LEN] = { 0x00 , };
@@ -67,6 +68,7 @@ struct Room {
     }
 #endif
 };
+
 
 
 #endif
