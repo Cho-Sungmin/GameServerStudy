@@ -25,16 +25,18 @@ void HB_Timer::handler( int signo , siginfo_t* info , void* uc )
 		OutputByteStream dummy( Header::SIZE );
 		header.write( dummy );
 		
-		InputByteStream packet( &dummy );
+		InputByteStream packet( dummy );
+		dummy.close();
 
 		try {
 			TCP::send_packet( dest_fd , packet );
-			dummy.close();
+			
 		}
 		catch( TCP::Connection_Ex e )
 		{
 		}
- 
+
 		timeout++;	//timer->m_timeout++;
+		packet.close();
 	}
 }

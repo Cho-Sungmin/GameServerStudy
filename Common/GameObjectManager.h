@@ -20,7 +20,7 @@ public:
 
     uint32_t getObjectId( GameObject *pGameObject );
     GameObject *getGameObject( uint32_t objectId );
-    list<GameObject*> &getGameObjectAll();
+    list<GameObject*> getGameObjectAll();
     void addGameObject( GameObject *pGameObject );
     void removeGameObject( GameObject *pGameObject );
 

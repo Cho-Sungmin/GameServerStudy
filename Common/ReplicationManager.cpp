@@ -6,7 +6,16 @@ ObjectCreationRegistry *ObjectCreationRegistry::m_pInstance;
 //--- To hosts ---//
 void ReplicationManager::replicateCreate( OutputByteStream &obstream , GameObject *pObject )
 {
-    ReplicationHeader header( Action::CREATE , m_pGameObjectMgr->getObjectId( pObject ) , pObject->getClassId() );
+    uint objectId = m_pGameObjectMgr->getObjectId( pObject );
+    uint classId = pObject->getClassId();
+
+    if( objectId == 0 )
+    {
+        pObject = ObjectCreationRegistry::getInstance()->createObject( pObject->getClassId() );
+        objectId = m_pGameObjectMgr->getObjectId( pObject );
+    }
+
+    ReplicationHeader header( Action::CREATE , objectId , classId );
 
     header.write( obstream );
     pObject->write( obstream );
@@ -46,8 +55,12 @@ void ReplicationManager::replicate( InputByteStream &ibstream )
         {
             GameObject *pGameObj = m_pGameObjectMgr->getGameObject( header.m_objectId );
 
-            if( pGameObj != nullptr )
-                pGameObj->read( ibstream );
+            if( pGameObj == nullptr )
+            {
+                pGameObj = ObjectCreationRegistry::getInstance()->createObject( header.m_classId );
+                m_pGameObjectMgr->addGameObject( pGameObj );
+            }
+            pGameObj->read( ibstream );
 
             break;
         }    

@@ -1,16 +1,16 @@
 #include "InputByteStream.h"
+#include "OutputByteStream.h"
 #include <string.h>
 #include <stdexcept>
 #include "Debug.h"
 
-InputByteStream::InputByteStream( ByteStream *pStream )
+InputByteStream::InputByteStream( OutputByteStream &obstream )
 {
-    capacity = pStream->getLength();
+    char *srcBuf = obstream.getBuffer();
+    capacity = obstream.getLength();
     buffer = (char*) malloc( capacity );
 
-    memcpy( buffer , pStream->getBuffer() , capacity );
-
-    pStream->close();
+    memcpy( buffer , srcBuf , capacity );
 }
 
 InputByteStream::InputByteStream( InputByteStream&& ibstream )
@@ -29,18 +29,25 @@ InputByteStream::InputByteStream( int maxBufferSize )
     buffer = (char*) malloc( capacity );
 }
 
+int InputByteStream::getRemainLength()
+{ return capacity - cursor; }
+
+void InputByteStream::reUse()
+{ setCursor(BS_ZERO); }
+
+void InputByteStream::flush()
+{ setCursor(BS_END); }
+
 void InputByteStream::read( void* out , int size )
 {
-    if( size > getLength() )
-        throw out_of_range( "Out of range exception ===>> InputByteStream::read( " + to_string(size) + "/" + to_string(getLength()) + " )" );
+    char *buf = getBuffer();
+    int remainLen = getRemainLength();
+    if( size > remainLen )
+        throw out_of_range( "Out of range exception ===>> InputByteStream::read( " + to_string(size) + "/" + to_string(remainLen) + " )" );
 
-    memcpy( out , getBuffer() , size );
+    memcpy( out , buf + cursor , size );
     cursor += size;
 }
-
-char* InputByteStream::getBuffer() const
-{   return buffer + cursor;  }
-
 
 template <>
 void InputByteStream::read( string& out )

@@ -8,18 +8,19 @@
 #include "ByteStream.h"
 
 using namespace std;
+class InputByteStream;
 
 class OutputByteStream : public ByteStream {
 public:
     OutputByteStream() = default;
     OutputByteStream( uint32_t maxBufferSize );
-    OutputByteStream( ByteStream *pStream );
+    OutputByteStream( InputByteStream &ibstream );
+    void reallocBuffer( int newSize );
+    int getLength() const;
+    void flush();
     void write( const void *in , int size );
 template <typename T>
     void write( T in );
-
-    void reallocBuffer( int newSize );
-    virtual int getLength() const;
 
     OutputByteStream& operator=( const OutputByteStream &obstream )
     {

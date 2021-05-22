@@ -46,6 +46,8 @@ void UserRedis::disconnect()
 
 const string UserRedis::hmgetCommand( const string &key , list<string> &fields )
 {
+    assert( key != "" );
+
     string cmd = "HMGET " + key;
 
     for( auto field : fields )
@@ -74,13 +76,14 @@ const string UserRedis::hmgetCommand( const string &key , list<string> &fields )
     else
     {
         string tmp_str = "";
+
         for( int i=0; i<pReply->elements; i++)
         {
             tmp_str = pReply->element[i]->str;
             result += tmp_str;
             result += ",";
         }
-        
+
         LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : " + result );
         LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + result );
     }
@@ -92,12 +95,14 @@ const string UserRedis::hmgetCommand( const string &key , list<string> &fields )
 
 void UserRedis::hmsetCommand( const string &key , list<string> &fields )
 {
-    string cmd = "HMSET " + key + " ";
+    assert( key != "" );
+
+    string cmd = "HMSET " + key;
 
     for( auto field : fields )
     {
+        cmd += ' ';
         cmd += field;
-        cmd += " ";
     }
 
     redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
@@ -119,6 +124,8 @@ void UserRedis::hmsetCommand( const string &key , list<string> &fields )
     
 const list<string> UserRedis::lrangeCommand( const string &key , const string &begin , const string &end )
 {
+    assert( key != "" );
+
     list<string> results;
     string cmd = "LRANGE " + key + " " + begin + " " + end;
 
@@ -143,8 +150,8 @@ const list<string> UserRedis::lrangeCommand( const string &key , const string &b
             results.emplace_back( pReply->element[i]->str );
         }
 
-        LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : " + to_string(results.size()) + " results" );
-        LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + to_string(results.size()) + " results" );
+        LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + " result(s)" );
+        LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + " result(s)" );
     }
     freeReplyObject(pReply);
     
@@ -153,6 +160,8 @@ const list<string> UserRedis::lrangeCommand( const string &key , const string &b
 
 void UserRedis::lpushCommand( const string &key , list<string> &values )
 {
+    assert( key != "" );
+
     string cmd = "LPUSH " + key + " {";
 
     for( auto value : values )
@@ -178,8 +187,8 @@ void UserRedis::lpushCommand( const string &key , list<string> &values )
     }
     else
     {
-        LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : " + pReply->str + " success");
-        LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + pReply->str + " success" );
+        LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + " success");
+        LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + " success" );
     }
 
     freeReplyObject(pReply);
@@ -187,6 +196,8 @@ void UserRedis::lpushCommand( const string &key , list<string> &values )
 
 void UserRedis::lpopCommand( const string &key )
 {
+    assert( key != "" );
+
     string cmd = "LPOP " + key;
 
     redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
@@ -213,6 +224,7 @@ void UserRedis::lpopCommand( const string &key )
 
 void UserRedis::lpushRoomList( const Room &room )
 {
+
     list<string> values = { "id:" + room.roomId , "capacity:" + to_string(room.capacity) , "presentMembers:" + to_string(room.presentMembers) , "title:" + room.title };
     string value = "";
 

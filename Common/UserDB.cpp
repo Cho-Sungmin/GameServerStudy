@@ -36,7 +36,7 @@ void UserDB::getUserData( UserInfo &data )
         result = 1;
     }
 
-    const string logStr = to_string(result) + "result founded";
+    const string logStr = to_string(result) + " result(s) founded";
     LOG::getInstance()->printLOG( "MYSQL" , "OK" , logStr );
     LOG::getInstance()->writeLOG( "MYSQL" , "OK" , logStr );
 }
@@ -79,7 +79,8 @@ void UserDB::verifyUserInfo( void **inParams , void **outParams )
             m_pRedis->hmsetUserInfo( userInfo );
         }
         
-        *pPacket = InputByteStream( &resPacket );
+        *pPacket = InputByteStream( resPacket );
+        resPacket.close();
     }
     catch( Not_Found_Ex e )
     {

@@ -4,11 +4,14 @@
 void TCP::send_packet( int dest_fd , InputByteStream &packet )
 {
     int len = 0;
+    int offset = 0;
     int head_len = Header::SIZE;
-    const char *buffer = packet.getBuffer();
+    char headerBuf[head_len] = { 0x00 , };
+    packet.read( headerBuf , head_len );
 
     while( head_len > 0 ){
-        len = write( dest_fd , buffer + len , head_len );
+        len = write( dest_fd , headerBuf + offset , head_len );
+        offset += len;
         head_len -= len;
     }
 
@@ -18,22 +21,24 @@ void TCP::send_packet( int dest_fd , InputByteStream &packet )
         LOG::getInstance()->printLOG( "TCP" , "WARN" , ex.what() );
 		LOG::getInstance()->writeLOG( "TCP" , "WARN" , ex.what() );
         throw ex;
-    }
-        
+    } 
+    
+    offset = 0;
+    len = 0;
 
-    Header header; header.read( packet );
-    len = 0 ;
+    packet.reUse();
+    header header; header.read( packet );
     int body_len = header.len;
-    buffer = packet.getBuffer();
+    char payloadBuf[body_len] = { 0x00 , };
+    packet.read( payloadBuf , body_len );
 
     while( body_len > 0 )
     {
-        len = write( dest_fd , buffer + len  , body_len );
+        len = write( dest_fd , payloadBuf + offset  , body_len );
+        offset += len;
         body_len -= len;
     }
 
-    packet.flush();
-    
     if( body_len != 0 )
     {
         Transmission_Ex ex;
@@ -43,28 +48,30 @@ void TCP::send_packet( int dest_fd , InputByteStream &packet )
     }
 }
 
-void TCP::recv_packet( int src_fd , InputByteStream &packet )
+void TCP::recv_packet( int src_fd , OutputByteStream &packet )
 {
     int len = 0;
+    int offset = 0;
     int head_len = Header::SIZE;
-    char* buffer = packet.getBuffer();
+    char headerBuf[head_len] = { 0x00 , };
 
     while( head_len > 0 ){
-        len = read( src_fd , packet.getBuffer() + len , head_len );
+        len = read( src_fd , headerBuf + offset , head_len );
 
-        if( len == 0 )
+        if( len < 0 )
         {
+            if( errno == EINTR )
+                continue;
+
             Connection_Ex ex;
             LOG::getInstance()->printLOG( "TCP" , "WARN" , ex.what() );
 		    LOG::getInstance()->writeLOG( "TCP" , "WARN" , ex.what() );
             throw ex;
         }
 
+        offset += len;
         head_len -= len;
     }
-
-    Header header; header.read( packet );
-    buffer = packet.getBuffer();
 
     //--- CASE : Header of packet is dropped ---//
     if( head_len < 0 )
@@ -74,27 +81,37 @@ void TCP::recv_packet( int src_fd , InputByteStream &packet )
 		LOG::getInstance()->writeLOG( "TCP" , "WARN" , ex.what() );
         throw ex;
     }
+    else
+        packet.write( headerBuf , Header::SIZE );
 
+    InputByteStream ibstream( packet );
+    Header header; header.read( ibstream );
+    ibstream.close();
+
+    offset = 0;
     len = 0;
     int body_len = header.len;
+    char payloadBuf[body_len] = { 0x00 , };
 
     while( body_len > 0 )
     {
-        len = read( src_fd , buffer + len , body_len );
-
-        if( len == 0 )
+        len = read( src_fd , payloadBuf + offset , body_len );
+        
+        if( len < 0 )
         {
+            if( errno == EINTR )
+                continue;
+
             Connection_Ex ex;
             LOG::getInstance()->printLOG( "TCP" , "WARN" , ex.what() );
 		    LOG::getInstance()->writeLOG( "TCP" , "WARN" , ex.what() );
             throw ex;
         }
 
+        offset += len;
         body_len -= len; 
     }
-
-    packet.flush();
-
+    
     if( body_len != 0 )
     {
         Transmission_Ex ex;
@@ -102,4 +119,6 @@ void TCP::recv_packet( int src_fd , InputByteStream &packet )
 		LOG::getInstance()->writeLOG( "TCP" , "WARN" , ex.what() );
         throw ex;
     }
+    else
+        packet.write( payloadBuf , header.len );
 }

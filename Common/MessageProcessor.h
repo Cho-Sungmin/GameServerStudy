@@ -51,21 +51,26 @@ void MessageProcessor::processMSG( void **inParams , void **outParams )
 	try {
 		m_msgQ.dequeue( msg );
 		header.read( msg );
-		msg.flush();
+		msg.reUse();
 
 		auto itr = m_hMap.find( header.func );
 		if( itr != m_hMap.end() )
+		{
 			itr->second( inparameters , outparameters );
+		}
+	
+		if( msg.getRemainLength() > 0 )
+		{
+			TCP::send_packet( header.sessionId , msg );
+			m_pLog->writeLOG( msg , LOG::TYPE::SEND );
+		}
 
-		TCP::send_packet( header.sessionId , msg );
-		m_pLog->writeLOG( msg , LOG::TYPE::SEND );
 		msg.close();
 	}
 	catch( Empty_Ex e ) {
-		//std::cout << e.what() << std::endl;
 	}
 	catch( TCP::Transmission_Ex e ) {
-		cout << e.what() << endl;
+		msg.close();
 	}
 
 }

@@ -58,7 +58,7 @@ void LOG::writeLOG( InputByteStream& packet , int type )
         type_str += string( 5 , '>' );
         break;
     case TYPE::SEND :
-        type_str += string( 5 , '>' );
+        type_str += string( 5 , '<' );
         break;
     default:
         break;
@@ -71,6 +71,11 @@ void LOG::writeLOG( InputByteStream& packet , int type )
     file.width(13);
     file << type_str;  
     file << log_str << endl;
+
+    if( file.is_open() )
+    {
+        file.close();
+    }
 }
 
 string LOG::getHeaderString( const Header& header )
@@ -90,19 +95,22 @@ string LOG::getHeaderString( const Header& header )
 
 const string LOG::getLog( InputByteStream& packet )
 {
-    packet.flush();
+    packet.reUse();
 
     Header header;
     header.read( packet );
     string header_str = getHeaderString( header );
     string data_str = "";
+    int bodyLen = header.len;
 
-    if( header.len > 0 )
+    if( bodyLen > 0 )
     {
-        data_str = getHexaString( packet.getBuffer() , header.len );
+        char buf[bodyLen] = { 0x00 ,};
+        packet.read( buf , bodyLen );
+        data_str = getHexaString( buf , bodyLen );
     }
 
-    packet.flush();
+    packet.reUse();
 
     return header_str + data_str;
 }
@@ -124,7 +132,7 @@ string LOG::getHexaString( const char* bytes , int size )
     return hexStr;
 }
 
-const string LOG::getTypeString( int type )
+const string LOG::getTypeString( int8_t type )
 {
     string type_str = "";
 
@@ -153,7 +161,7 @@ const string LOG::getTypeString( int type )
     return type_str;
 }
 
-const string LOG::getFuncString( int func )
+const string LOG::getFuncString( int16_t func )
 {
     string type_str = "";
 

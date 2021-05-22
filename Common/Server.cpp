@@ -25,9 +25,11 @@ bool Server::listen( int max )
     if( result == -1 )
     {
         LOG::getInstance()->printLOG( "INIT" , "ERROR" , "listen()" );
+        LOG::getInstance()->writeLOG( "INIT" , "ERROR" , "listen()" );
         return false;
     }else{
         LOG::getInstance()->printLOG( "INIT" , "OK" , "listen()" );
+        LOG::getInstance()->writeLOG( "INIT" , "OK" , "listen()" );
         return true;
     }
 }
@@ -42,9 +44,11 @@ bool Server::bind()
     if( result == -1 )
     {
         LOG::getInstance()->printLOG( "INIT" , "ERROR" , "bind()" );
+        LOG::getInstance()->writeLOG( "INIT" , "ERROR" , "bind()" );
         return false;
     }else{
         LOG::getInstance()->printLOG( "INIT" , "OK" , "bind()" );
+        LOG::getInstance()->writeLOG( "INIT" , "OK" , "bind()" );
         return true;
     }
 }

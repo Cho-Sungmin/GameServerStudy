@@ -5,17 +5,22 @@
 #include "ByteStream.h"
 
 using namespace std;
+class OutputByteStream;
 
 class InputByteStream : public ByteStream {
 public:
     InputByteStream() = default;
     InputByteStream( int maxBufferSize );
-    InputByteStream( ByteStream *pStream );
+    InputByteStream( OutputByteStream &obstream );
     InputByteStream( InputByteStream&& ibstream );
+    int getRemainLength();
+    void reUse();
+    void flush();
     void read( void* out , int size );
 template <typename T>
     void read( T& out );
-    virtual char* getBuffer() const;
+
+    friend class OutputByteStream;
 
     InputByteStream& operator=( InputByteStream& ibstream )
     {

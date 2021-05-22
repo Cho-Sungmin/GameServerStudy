@@ -53,8 +53,8 @@ private:
     string getHexaString( const char* bytes , int size );
     string getCurrentTime();
     string getCurrentDate();
-    const string getTypeString( int type );
-    const string getFuncString( int func );
+    const string getTypeString( int8_t type );
+    const string getFuncString( int16_t func );
 
 };
 

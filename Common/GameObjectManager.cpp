@@ -1,13 +1,12 @@
 #include "GameObjectManager.h"
 
- uint32_t GameObjectManager::getObjectId( GameObject *pGameObject )
+uint32_t GameObjectManager::getObjectId( GameObject *pGameObject )
 {
     auto itr = m_idTable.find( pGameObject );
     if( itr != m_idTable.end() )
         return itr->second;
     else{
-        addGameObject( pGameObject );
-        return m_nextObjectId - 1;
+        return 0;
     }
 }
 GameObject *GameObjectManager::getGameObject( uint32_t objectId )
@@ -20,7 +19,7 @@ GameObject *GameObjectManager::getGameObject( uint32_t objectId )
     }
 }
 
-list<GameObject*> &GameObjectManager::getGameObjectAll()
+list<GameObject*> GameObjectManager::getGameObjectAll()
 {
     list<GameObject*> results;
 

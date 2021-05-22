@@ -33,8 +33,7 @@ public:
 	void invalidHandler();
 	void onHeartbeat();
 	void onRequest( InputByteStream &msg );
-	void onSignIn( const string &id , const string &pw );
-	void resCreateNewRoom( void *lParam , void *rParam );
+	void onNotification( InputByteStream &msg );
 	
 	virtual void registerHandler( map<int , function<void(void**,void**)>> &h_map ); 
 };

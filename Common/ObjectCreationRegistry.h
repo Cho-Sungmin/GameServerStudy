@@ -38,7 +38,7 @@ template <typename T>
     void registerCreationFunc()
     {
         uint32_t classId = T::getClassId();
-        assert( m_creationFuncTable.find( classId ) != m_creationFuncTable.end() );
+        assert( m_creationFuncTable.find( classId ) == m_creationFuncTable.end() );
 
         m_creationFuncTable[ classId ] = T::createInstance;
     }

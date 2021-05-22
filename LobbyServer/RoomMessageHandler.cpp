@@ -40,9 +40,6 @@ void RoomMessageHandler::resEnterRoom( void **inParams , void **outParams )
     }
     catch( Not_Found_Ex e )
     {
-        header.func = FUNCTION_CODE::RES_ENTER_LOBBY_FAIL;
-        header.len= 0;
-        header.write( resPacket );
     }
     catch( UserRedisException e )
     {
@@ -52,7 +49,8 @@ void RoomMessageHandler::resEnterRoom( void **inParams , void **outParams )
         header.write( resPacket );
     }
 
-    *pPacket = InputByteStream( &resPacket );
+    *pPacket = InputByteStream( resPacket );
+    resPacket.close();
 }
 
 void RoomMessageHandler::resRoomList( void **inParams , void **outParams )
@@ -92,12 +90,13 @@ void RoomMessageHandler::resRoomList( void **inParams , void **outParams )
     }
 
     header.write( resPacket );
-    *pPacket = InputByteStream( &resPacket );
+    *pPacket = InputByteStream( resPacket );
+    resPacket.close();
 }
 
 void RoomMessageHandler::resMakeRoom( void **inParams , void **outParams )
 {
-    list<RoomManager> *pRoomList = reinterpret_cast<list<RoomManager>*>( inParams[0] );
+    //list<RoomManager> *pRoomList = reinterpret_cast<list<RoomManager>*>( inParams[0] );
     InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( outParams[0] );	
     Header header; header.read( *pPacket );
     header.type = PACKET_TYPE::RES;
@@ -106,8 +105,10 @@ void RoomMessageHandler::resMakeRoom( void **inParams , void **outParams )
     OutputByteStream resPacket( TCP::MPS );
 
     try{
-        UserRedis::getInstance()->hmsetNewRoom( room );
-        UserRedis::getInstance()->hmgetRoom( room );
+        UserRedis *pInstance = UserRedis::getInstance();
+        pInstance->hmsetNewRoom( room );
+        pInstance->hmgetRoom( room );
+        pInstance->lpushRoomList( room );
 
         //--- Set response packet ---//
         OutputByteStream payload( TCP::MPS );
@@ -115,7 +116,7 @@ void RoomMessageHandler::resMakeRoom( void **inParams , void **outParams )
 
         //--- CASE : The request is valid ---//
         //--- Add new room in the list ---//
-        pRoomList->emplace_back(room);
+        //pRoomList->emplace_back(room);
 
         header.func = FUNCTION_CODE::RES_MAKE_ROOM_SUCCESS;
         header.len = payload.getLength();
@@ -130,7 +131,8 @@ void RoomMessageHandler::resMakeRoom( void **inParams , void **outParams )
         header.write( resPacket );
     }
 
-    *pPacket = InputByteStream( &resPacket );
+    *pPacket = InputByteStream( resPacket );
+    resPacket.close();
 
 }
 

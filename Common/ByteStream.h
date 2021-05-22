@@ -3,6 +3,11 @@
 
 #include <string>
 
+enum BS_FLAG : int8_t {
+    BS_ZERO = 0,
+    BS_END = -1
+};
+
 class ByteStream {
 protected:
     int cursor = 0;    // Pointing index of buffer to be read next
@@ -10,9 +15,8 @@ protected:
     char* buffer = nullptr;
 
 public:
-    virtual char *getBuffer() const;
-    virtual int getLength() const;
-    void flush(){ cursor = 0; }
+    void setCursor( BS_FLAG flag );
+    char *getBuffer() const;
     void close();
 };
 

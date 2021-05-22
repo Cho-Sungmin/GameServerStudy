@@ -24,31 +24,43 @@ const std::list<Session*> &SessionManager::getSessionList()
 
 void SessionManager::validate( int sessionId )
 {
-    Session *pSession = getSessionById( sessionId );
+    try{
+        Session *pSession = getSessionById( sessionId );
 
-    pSession->init();
-    pSession->startTimers();
+        pSession->init();
+        pSession->startTimers();
+    }catch( Not_Found_Ex e )
+    {
+    }
 }
 
 void SessionManager::expired( int sessionId )
 {
-    Session *pSession = getSessionById( sessionId );
+    try{
+        Session *pSession = getSessionById( sessionId );
 
-    if( pSession->m_pHBTimer != nullptr )
-    {	
-        pSession->stopTimers();
-        m_sessionList.remove( pSession );
-        cout << "Expired session[" << to_string( sessionId ) << "]" << endl;
+        if( pSession->m_pHBTimer != nullptr )
+        {	
+            pSession->stopTimers();
+            m_sessionList.remove( pSession );
+            cout << "Expired session[" << to_string( sessionId ) << "]" << endl;
+        }
+    }catch( Not_Found_Ex e )
+    {
     }
 }
 
 void SessionManager::refresh( int sessionId )
 {
-    Session *pSession = getSessionById( sessionId );
-    
-    if( pSession->m_pHBTimer != nullptr )
-    {	
-        pSession->m_pHBTimer->refresh();
+    try{
+        Session *pSession = getSessionById( sessionId );
+        
+        if( pSession->m_pHBTimer != nullptr )
+        {	
+            pSession->m_pHBTimer->refresh();
+        }
+    }catch( Not_Found_Ex e )
+    {
     }
 }
 

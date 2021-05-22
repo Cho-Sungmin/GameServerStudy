@@ -21,13 +21,26 @@ public:
     bool isEqual( const string &roomId )
     { return m_roomInfo.roomId == roomId ? true : false; }
 
+    bool isPlayer( int sessionId )
+    {
+        try{
+            m_sessionMgr.getSessionById( sessionId );
+            return true;
+        }
+        catch( Not_Found_Ex e )
+        {
+            throw e;
+            return false;
+        }
+    }
+
     void acceptSession( Session *pNewSession )
     {
         m_sessionMgr.addSession( pNewSession );
-        m_gameObjectMgr.addGameObject( PlayerObject::createInstance() );
+        //m_gameObjectMgr.addGameObject( PlayerObject::createInstance() );
     }
 
-    list<GameObject*> &getGameObjects()
+    list<GameObject*> getGameObjects()
     { return m_gameObjectMgr.getGameObjectAll(); }
 };
 

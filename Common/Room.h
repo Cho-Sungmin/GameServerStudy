@@ -13,6 +13,9 @@ struct Room {
     uint32_t presentMembers = 0;
     string title = "";
 
+
+    Room() = default;
+    Room( const string id ) : roomId(id) {}
     
     int getLength()
     { return roomId.length() + sizeof(int) + sizeof(int) + title.length(); }

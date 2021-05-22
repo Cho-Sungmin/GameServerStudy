@@ -28,7 +28,7 @@ namespace TCP {
 		}
 	};
 
-	void recv_packet( int src_fd , InputByteStream& packet );
+	void recv_packet( int src_fd , OutputByteStream& packet );
 	void send_packet( int dest_fd , InputByteStream& packet );
 };
 

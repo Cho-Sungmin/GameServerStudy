@@ -1,4 +1,5 @@
 #include "OutputByteStream.h"
+#include "InputByteStream.h"
 
 
 OutputByteStream::OutputByteStream( uint32_t maxBufferSize )
@@ -7,17 +8,29 @@ OutputByteStream::OutputByteStream( uint32_t maxBufferSize )
     buffer = (char*) malloc( capacity );
 }
 
-OutputByteStream::OutputByteStream( ByteStream *pStream )
+OutputByteStream::OutputByteStream( InputByteStream &ibstream )
 {
-    capacity = pStream->getLength();
+    char *srcBuf = ibstream.getBuffer();
+    capacity = ibstream.getRemainLength();
     buffer = (char*) malloc( capacity );
 
-    write( pStream->getBuffer() , capacity );
-
-    pStream->close();
+    write( srcBuf + ibstream.cursor , capacity );
 }
 
+void OutputByteStream::reallocBuffer( int newSize )
+{
+    char *tmp = (char*) malloc( newSize );
 
+    memcpy( tmp , buffer , getLength() );
+    free( buffer );
+    buffer = tmp;
+}
+
+int OutputByteStream::getLength() const
+{ return cursor; }
+
+void OutputByteStream::flush()
+{ setCursor(BS_ZERO); }
 
 template <>
 void OutputByteStream::write( string in )
@@ -35,16 +48,3 @@ void OutputByteStream::write( const void* in , int size )
     memcpy( buffer + cursor , in , size );
     cursor += size;
 }
-
-void OutputByteStream::reallocBuffer( int newSize )
-{
-    char *tmp = (char*) malloc( newSize );
-
-    memcpy( tmp , buffer , getLength() );
-    free( buffer );
-    buffer = tmp;
-}
-
-int OutputByteStream::getLength() const
-{ return cursor; }
-
