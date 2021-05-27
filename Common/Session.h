@@ -45,7 +45,7 @@ public:
 	//--- Functions ---//
 	void init( int sec=3 , int nsec=0 );
 	virtual void startTimers();	
-	virtual void stopTimers();	
+	virtual void expireTimers();	
 	int getSessionId() const;	
 	//--- Operator ---//
 	void operator=( const Session &session );

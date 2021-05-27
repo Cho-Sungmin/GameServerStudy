@@ -86,6 +86,11 @@ int main()
 					msgProc.processMSG( pParams );
 					sessionMgr.refresh( clntSocket );	// Reset timer
 				}
+				catch( TCP::NoData_Ex e )
+				{
+					sessionMgr.expired( clntSocket );
+					server.farewell( clntSocket );
+				}
 				catch( TCP::Connection_Ex e )
 				{
 					//--- Set free ---//
@@ -107,8 +112,11 @@ int main()
 							int invalidSessionId = pSession->getSessionId();
 
 							//--- Set free ---//
+							pSession->m_pHBTimer->stop();
 							sessionMgr.expired( invalidSessionId );
 							server.farewell( invalidSessionId );
+
+							break;
 						}
 					}
 				}
@@ -122,7 +130,7 @@ int main()
 
 	}
 
-	//userDB.destroy();
+	sessionMgr.expireAll();
 
 	return 0;
 }

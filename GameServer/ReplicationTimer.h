@@ -13,15 +13,12 @@ public:
 	static void handler( int signo , siginfo_t *pInfo , void *uc );
 
     //--- Constructor ---//
-	
 	ReplicationTimer() = default; 
 
 	ReplicationTimer( RoomManager &roomMgr , int _fd , int sec=0 , int nsec=100000000 )    // 100ms
 			:  Timer(sec , nsec) , m_fd(_fd) , m_roomMgr(roomMgr)
 	{
-
 		struct sigaction action;
-
 		action.sa_flags	= SA_SIGINFO;
 		action.sa_sigaction	= handler;
 
@@ -33,14 +30,19 @@ public:
 		m_event.sigev_value.sival_ptr = reinterpret_cast<void*>(this);
 	}
 
+	~ReplicationTimer()
+	{
+		LOG::getInstance()->printLOG( "DEBUG" , "TIMER" , "Replication timer(" + to_string(m_fd) + ") DESTROYED" );
+	}
+
 };
 
 void ReplicationTimer::handler( int signo , siginfo_t *pInfo , void *uc )
 {
 	ReplicationTimer *pRepTimer = reinterpret_cast<ReplicationTimer*>( pInfo->si_value.sival_ptr );
 
-	RoomManager& roomMgr = pRepTimer->m_roomMgr;
-	list<GameObject*> &gameObjects = roomMgr.getGameObjects();
+	RoomManager &roomMgr = pRepTimer->m_roomMgr;
+	list<GameObject*> gameObjects = roomMgr.getGameObjects();
 	ReplicationManager &repMgr = roomMgr.m_replicationMgr;
 
 	for( auto obj : gameObjects )
@@ -57,9 +59,11 @@ void ReplicationTimer::handler( int signo , siginfo_t *pInfo , void *uc )
 		header.write( packet );
 		packet << payload;
 
-		InputByteStream ibstream( &packet );
+		InputByteStream ibstream( packet );
+		packet.close();
 		
 		TCP::send_packet( pRepTimer->m_fd , ibstream );
+		LOG::getInstance()->writeLOG( ibstream , LOG::TYPE::SEND );
 		
 		ibstream.close();
 	}

@@ -3,6 +3,7 @@
 
 #include "Timer.h"
 #include "TCP.h"
+#include "Debug.h"
 
 class HB_Timer : public Timer {
 	int	m_fd = -1;
@@ -27,6 +28,8 @@ public:
 		m_event.sigev_value.sival_ptr = reinterpret_cast<void*>(this);
 	}
 
+	~HB_Timer()
+	{ LOG::getInstance()->printLOG( "DEBUG" , "TIMER" , "Heart-beat timer(" + to_string(m_fd) + ") DESTROYED" ); }
 };
 
 

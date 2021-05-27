@@ -58,7 +58,7 @@ void MessageProcessor::processMSG( void **inParams , void **outParams )
 		{
 			itr->second( inparameters , outparameters );
 		}
-	
+
 		if( msg.getRemainLength() > 0 )
 		{
 			TCP::send_packet( header.sessionId , msg );
@@ -71,6 +71,10 @@ void MessageProcessor::processMSG( void **inParams , void **outParams )
 	}
 	catch( TCP::Transmission_Ex e ) {
 		msg.close();
+	}
+	catch( TCP::Connection_Ex e ) {
+		msg.close();
+		throw e;
 	}
 
 }

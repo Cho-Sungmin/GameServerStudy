@@ -12,7 +12,6 @@ void UserRedis::connect()
 
     try{
         Redis::connect();
-        cleanAll();
         LOG::getInstance()->printLOG( "REDIS" , "OK" , logStr );
         LOG::getInstance()->writeLOG( "REDIS" , "OK" , logStr );
 
@@ -31,9 +30,6 @@ void UserRedis::disconnect()
 {
     Redis::disconnect();
     m_isConn = false;
-
-    //--- Clean all data in redis ---//
-    cleanAll();
 
     if( pInstance != nullptr )
         delete( pInstance );

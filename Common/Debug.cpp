@@ -30,20 +30,20 @@ void LOG::printLOG( InputByteStream& packet , int type )
     switch(type)
     {
     case TYPE::RECV :
-        type_str.assign( '>' , 8 );
+        type_str.assign( 8 , '>' );
         break;
     case TYPE::SEND :
-        type_str.assign( '<' , 8 );
+        type_str.assign( 8 , '<' );
         break;
     default:
         break;
     }
 
     //--- print log ---//
-    file.width(10);
+    cout.width(10);
     cout.setf(ios_base::left);
-    file << type_str;  
-    file << log_str << endl;
+    cout << type_str;  
+    cout << log_str << endl;
 }
 
 void LOG::writeLOG( InputByteStream& packet , int type )

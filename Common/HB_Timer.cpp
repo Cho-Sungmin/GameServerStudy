@@ -14,11 +14,11 @@ void HB_Timer::handler( int signo , siginfo_t* info , void* uc )
 
 		if( pTimer != nullptr )
 		{
-			if( state != TIMER_SLEEP )
-				pTimer->asleep();
+			pTimer->stop();
+			LOG::getInstance()->printLOG( "DEBUG" , "TIMER" , "Heart-beat timer(" + to_string(dest_fd) + ") STOP" );
 		}	
-		
-	}else {
+	}
+	else {
 
 		//--- Create and send dummy packet ---//
 		Header header( PACKET_TYPE::HB , FUNCTION_CODE::ANY , 0 , dest_fd );
@@ -30,13 +30,14 @@ void HB_Timer::handler( int signo , siginfo_t* info , void* uc )
 
 		try {
 			TCP::send_packet( dest_fd , packet );
-			
+			LOG::getInstance()->printLOG( packet , LOG::TYPE::SEND );
 		}
 		catch( TCP::Connection_Ex e )
 		{
+			pTimer->m_timeout = 4;
 		}
 
-		timeout++;	//timer->m_timeout++;
+		pTimer->m_timeout++;
 		packet.close();
 	}
 }

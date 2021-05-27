@@ -5,6 +5,7 @@
 #include <exception>
 #include <iostream>
 
+
 class Awake_Ex : public std::exception {
 public:
 	virtual const char *what() const noexcept override {
@@ -24,6 +25,7 @@ public:
 	}
 };
 class Stop_Ex : public std::exception {
+	std::string errStr;
 public:
 	virtual const char *what() const noexcept override {
 		return "stop() Exception!";

@@ -1,4 +1,5 @@
 #include "SelectIOServer.h"
+#include "Debug.h"
 
 //--- Functions ---//
 int SelectIOServer::getState() const 
@@ -54,7 +55,6 @@ int SelectIOServer::run( void *lParam , void *rParam )
 	else if( n == 0 )
 		throw Select_TimeOut();
 
-
 	//--- Pick ready socket ---//
 
 	for( int i=0 ; i<m_fdMax ; i++ ){
@@ -86,14 +86,15 @@ int SelectIOServer::run( void *lParam , void *rParam )
 	return result;
 }
 
-void SelectIOServer::stop() { }
+void SelectIOServer::stop() { m_state = STOP; }
 
 //--- Clear expired fd ---//
 void SelectIOServer::farewell( int expired_fd )
 {
-	std::cout << "Farewell" << std::endl;
 	FD_CLR( expired_fd , &m_readfds );
 	if( m_fdMax == expired_fd )
 		--m_fdMax;
 	close( expired_fd );
+
+	LOG::getInstance()->printLOG( "TCP" , "NOTI" , "Farewell[" + to_string(expired_fd) + ']' );
 }

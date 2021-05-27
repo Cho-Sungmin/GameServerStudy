@@ -7,12 +7,11 @@
 
 
 class GameObject {
+public:
     enum { CLASS_ID = 'GOBJ' };
     static GameObject *createInstance() { return new GameObject(); }
-    
-    //friend class ObjectCreationRegistry;
-public:
-    static uint32_t getClassId() { return CLASS_ID; }
+
+    virtual uint32_t getClassId() { return CLASS_ID; }
 
     virtual void read( InputByteStream &ibstream )
     {

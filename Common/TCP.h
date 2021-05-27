@@ -28,6 +28,13 @@ namespace TCP {
 		}
 	};
 
+	class NoData_Ex : public TCP_Ex {
+	public:
+		virtual const char *what() const noexcept override {
+			return "No data to read/write...";
+		}
+	};
+
 	void recv_packet( int src_fd , OutputByteStream& packet );
 	void send_packet( int dest_fd , InputByteStream& packet );
 };

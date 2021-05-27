@@ -49,7 +49,6 @@ void UserDB::verifyUserInfo( void **inParams , void **outParams )
     Header header; header.read( *pPacket );
 
     try {
-
         Session *pSession = pSessionMgr->getSessionById( header.sessionId );     // To update user information in the session, if it's verified user.
         UserInfo &userInfo = pSession->m_userInfo;
         

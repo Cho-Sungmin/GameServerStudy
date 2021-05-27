@@ -36,7 +36,7 @@ void Timer::asleep()
 
 void Timer::start()
 {
-    if( m_state != TIMER_SLEEP | TIMER_WORKING )
+    if( m_state != (TIMER_SLEEP | TIMER_WORKING) )
     {
         if( timer_settime( m_id , 0 , &m_spec , NULL ) == -1 )
             throw Start_Ex();
@@ -54,11 +54,13 @@ void Timer::stop()
     struct itimerspec spec = {0};
     m_timeout = 0;
 
-    if( m_state != TIMER_SLEEP | TIMER_STOP )
+    if( m_state != TIMER_SLEEP )
     {
         if( timer_settime( m_id , 0 , &spec , NULL ) == -1 )
+        {
+            perror("Stop exception : ");
             throw Stop_Ex();
-        else {
+        }else {
             m_state = TIMER_STOP;
         }
     }

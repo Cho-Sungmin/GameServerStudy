@@ -41,13 +41,24 @@ void SessionManager::expired( int sessionId )
 
         if( pSession->m_pHBTimer != nullptr )
         {	
-            pSession->stopTimers();
+            pSession->expireTimers();
             m_sessionList.remove( pSession );
-            cout << "Expired session[" << to_string( sessionId ) << "]" << endl;
+            delete( pSession );
+            LOG::getInstance()->printLOG( "SESSION" , "NOTI" , "Expired session[" + to_string( sessionId ) + "]" );
         }
     }catch( Not_Found_Ex e )
     {
     }
+}
+
+void SessionManager::expireAll()
+{
+    for( auto pSession : m_sessionList )
+    {
+        if( pSession != nullptr )
+            delete(pSession);
+    }
+    LOG::getInstance()->printLOG( "DEBUG" , "MEMORY" , "Free all sessions" );
 }
 
 void SessionManager::refresh( int sessionId )
@@ -69,8 +80,8 @@ void SessionManager::newSession( int sessionId )
     m_sessionList.push_back( new Session(sessionId) );
     const string logStr = "New session[" + to_string(sessionId) + "]";
 
-    LOG::getInstance()->printLOG( "NOTI" , "NOTI" , logStr );
-	LOG::getInstance()->writeLOG( "NOTI" , "NOTI" , logStr );
+    LOG::getInstance()->printLOG( "SESSION" , "NOTI" , logStr );
+	LOG::getInstance()->writeLOG( "SESSION" , "NOTI" , logStr );
 }
 
 void SessionManager::addSession( Session *pSession )
@@ -78,12 +89,17 @@ void SessionManager::addSession( Session *pSession )
     m_sessionList.push_back( pSession );
 }
 
+void SessionManager::deleteSession( Session *pSession )
+{
+    m_sessionList.remove( pSession );
+}
+
 bool SessionManager::validationCheck( const Session *pSession ) const
 {
     if( pSession->m_pHBTimer == nullptr )
         return true;
 
-    if( pSession->m_pHBTimer->getState() == TIMER_SLEEP )
+    if( pSession->m_pHBTimer->getState() == (TIMER_SLEEP | TIMER_STOP) )
         return false;
     else
         return true;

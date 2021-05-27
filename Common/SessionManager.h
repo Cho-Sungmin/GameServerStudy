@@ -20,9 +20,11 @@ public:
 	const std::list<Session*> &getSessionList();
 	void validate( int sessionId );	
 	void expired( int sessionId );
+	void expireAll();
 	void refresh( int sessionId );
 	void newSession( int sessionId );
 	void addSession( Session *pSession );
+	void deleteSession( Session *pSession );
 	bool validationCheck( const Session *pSession ) const;
 };
 

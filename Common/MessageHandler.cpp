@@ -9,11 +9,10 @@ void MessageHandler::acceptHandler( SessionManager &sessionMgr , int clntSocket 
         sessionMgr.newSession( clntSocket );
 
         // Validate HB timer //
-        
         sessionMgr.validate( clntSocket );
 
         // Enqueue welcome MSG //
-        OutputByteStream payload( welcomeMSG.length() + 4 );
+        OutputByteStream payload( TCP::MPS );
         payload.write( welcomeMSG );
 
         Header header( PACKET_TYPE::NOTI , FUNCTION_CODE::NOTI_WELCOME , payload.getLength() , clntSocket );
@@ -35,7 +34,6 @@ void MessageHandler::inputHandler( int clntSocket )
 
     try {
         //--- Verify user informations ---//
-
         TCP::recv_packet( clntSocket , obstream );
         InputByteStream msg( obstream );
         m_pLog->writeLOG( msg , LOG::TYPE::RECV );
@@ -62,6 +60,10 @@ void MessageHandler::inputHandler( int clntSocket )
         }
     }
     catch( TCP::Connection_Ex e )
+    {
+        throw e;
+    }
+    catch( TCP::NoData_Ex e )
     {
         throw e;
     }

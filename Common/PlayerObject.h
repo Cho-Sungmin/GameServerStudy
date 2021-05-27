@@ -24,15 +24,13 @@ typedef struct Vector2 {
 }Vector2,Position;
 
 class PlayerObject : public GameObject {
-    enum { CLASS_ID = 'POBJ' };
-
     Position position;
     Vector2 velocity;
 
     PlayerObject() = default;
-
 public:
-    static uint32_t getClassId() { return CLASS_ID; }
+    enum { CLASS_ID = 'POBJ' };
+    virtual uint32_t getClassId() { return CLASS_ID; }
     static GameObject *createInstance() { return new PlayerObject(); }
 
     virtual void read( InputByteStream &ibstream )

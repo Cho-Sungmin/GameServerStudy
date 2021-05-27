@@ -10,8 +10,8 @@ void Session::init( int sec , int nsec )
 void Session::startTimers()
 { m_pHBTimer->start(); }
 
-void Session::stopTimers()
-{ m_pHBTimer->stop(); }
+void Session::expireTimers()
+{ m_pHBTimer->asleep(); }
 
 int Session::getSessionId() const
 { return m_socket; }

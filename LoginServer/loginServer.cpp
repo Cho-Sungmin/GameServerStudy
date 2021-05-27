@@ -54,7 +54,7 @@ int main()
 	{
 		int	clntSocket = -1;
 		struct sockaddr_in addr;
-		
+
 		try {
 			result = server.run( reinterpret_cast<void*>(&clntSocket) , reinterpret_cast<void*>(&addr) );
 		} 
@@ -64,7 +64,6 @@ int main()
 			continue;
 		}
 		
-
 		//--- Event handling ---//
 		switch( result ) {
 
@@ -80,12 +79,16 @@ int main()
 				break;
 
 			case INPUT :	// Got messages
-
 				try {
 					void *pParams[1] = { &sessionMgr };
 					msgHandler.inputHandler( clntSocket );
 					msgProc.processMSG( pParams );
 					sessionMgr.refresh( clntSocket );	// Reset timer
+				}
+				catch( TCP::NoData_Ex e )
+				{
+					sessionMgr.expired( clntSocket );
+					server.farewell( clntSocket );
 				}
 				catch( TCP::Connection_Ex e )
 				{
@@ -110,6 +113,8 @@ int main()
 							//--- Set free ---//
 							sessionMgr.expired( invalidSessionId );
 							server.farewell( invalidSessionId );
+
+							break;
 						}
 					}
 				}
@@ -119,10 +124,9 @@ int main()
 			default	:	// Undefined
 				break;
 		}
-
-
 	}
 
+	sessionMgr.expireAll();
 	userDB.destroy();
 
 	return 0;

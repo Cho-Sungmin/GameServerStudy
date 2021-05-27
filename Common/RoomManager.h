@@ -29,7 +29,6 @@ public:
         }
         catch( Not_Found_Ex e )
         {
-            throw e;
             return false;
         }
     }
@@ -37,7 +36,6 @@ public:
     void acceptSession( Session *pNewSession )
     {
         m_sessionMgr.addSession( pNewSession );
-        //m_gameObjectMgr.addGameObject( PlayerObject::createInstance() );
     }
 
     list<GameObject*> getGameObjects()

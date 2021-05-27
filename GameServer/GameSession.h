@@ -12,7 +12,7 @@ public:
     //--- Constructors ---//
 	GameSession() = default;
 	GameSession( int socket ) : Session(socket) { }
-	GameSession( Session &&session ) : Session(session) { }
+	GameSession( Session &&session ) : Session(move(session)) { }
 	
 	GameSession( GameSession &&session )
 	{
@@ -38,7 +38,7 @@ public:
 	}
 
     //--- Functions ---//
-	void init( RoomManager &mgr , int sec=3 , int nsec=0 )
+	void init( RoomManager &mgr )
 	{
         m_pRepTimer = new ReplicationTimer( mgr , m_socket );
 		m_pRepTimer->awake();

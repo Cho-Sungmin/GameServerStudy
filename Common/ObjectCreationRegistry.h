@@ -7,6 +7,7 @@
 
 
 
+
 using namespace std;
 using CreationFunc = GameObject*(*)();
 
@@ -37,7 +38,8 @@ public:
 template <typename T>
     void registerCreationFunc()
     {
-        uint32_t classId = T::getClassId();
+        uint32_t classId = T::CLASS_ID;
+
         assert( m_creationFuncTable.find( classId ) == m_creationFuncTable.end() );
 
         m_creationFuncTable[ classId ] = T::createInstance;
