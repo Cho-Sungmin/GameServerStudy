@@ -1,7 +1,7 @@
 #ifndef BYTE_STREAM_H
 #define BYTE_STREAM_H
 
-#include <string>
+#include <stdlib.h>
 
 enum BS_FLAG : int8_t {
     BS_ZERO = 0,

@@ -17,6 +17,15 @@ class GameObjectManager {
     
 public:
     GameObjectManager() : m_nextObjectId(1) {}
+    ~GameObjectManager()
+    {
+        for( auto itr = m_objectTable.begin(); itr != m_objectTable.end(); ++itr )
+        {
+            GameObject *pObj = itr->second;
+            if( pObj != nullptr )
+                delete pObj;
+        }
+    }
 
     uint32_t getObjectId( GameObject *pGameObject );
     GameObject *getGameObject( uint32_t objectId );

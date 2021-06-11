@@ -4,8 +4,7 @@
 #include <unordered_map>
 #include <assert.h>
 #include "PlayerObject.h"
-
-
+#include "Debug.h"
 
 
 using namespace std;
@@ -33,6 +32,15 @@ public:
             m_pInstance = new ObjectCreationRegistry();
         
         return m_pInstance;
+    }
+
+    void destroy()
+    {
+        if( m_pInstance != nullptr )
+        {
+            LOG::getInstance()->printLOG( "DEBUG" , "OBJ_REGI" , "destroy()" );
+            delete( m_pInstance );
+        }
     }
 
 template <typename T>

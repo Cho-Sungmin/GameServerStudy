@@ -39,6 +39,7 @@ public:
 				m_pHBTimer->asleep();
 
 			delete m_pHBTimer;
+			m_pHBTimer = nullptr;
 		}
 	}
 

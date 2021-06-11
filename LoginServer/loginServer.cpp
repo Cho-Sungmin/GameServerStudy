@@ -1,133 +1,58 @@
 #include <iostream>
 #include <list>
 
-#include "SelectIOServer.h"
 #include "ServerAdaptor.h"
-#include "Session.h"
-#include "SessionManager.h"
-#include "MessageHandler.h"
-#include "MessageProcessor.h"
-
-#include "UserDB.h"
-#include "UserRedis.h"
+#include "LoginServer.h"
 
 using namespace std;
 
-UserRedis *UserRedis::pInstance;
+UserRedis *UserRedis::m_pInstance;
+LOG *LOG::m_pInstance;
 
 int main()
 {
-	UserRedis *pRedis = UserRedis::getInstance();
-	UserDB userDB( pRedis );
-
-	ServerAdaptor<SelectIOServer> server;
-	SessionManager sessionMgr;
-	MessageQueue msgQ;
-
-	MessageHandler msgHandler( msgQ , "LoginServer" );
-	MessageProcessor msgProc( msgQ , "LoginServer" );
-
-	int	result = 0;
-
-
-	//--- Register handlers ---//
-	msgProc.registerProcedure( userDB );
+	LOG *pLog = LOG::getInstance( "LoginServer" );
+	ServerAdaptor<LoginServer> server;
+	list<SelectResult> resultList;
 
 	//--- Server work ---//
 	server.init("1091");
 	server.ready();
-
-	//--- Database Connection ---//
-	try {
-		pRedis->connect();
-		userDB.init();
-	}
-	catch( RedisException::Connection_Ex e )
-	{
-		// TODO : Reconnection routine //
-		cout << "Process terminate" << endl;
-		return 0;
-	}
 	
+	int	clntSocket = -1;
+	struct sockaddr_in addr;
+
+	void **pInParams = nullptr;
+	void *pOutParams[2] = { &resultList , &addr };
 	
 	while( server.getState() != STOP ) 
 	{
-		int	clntSocket = -1;
-		struct sockaddr_in addr;
+		clntSocket = -1;
 
 		try {
-			result = server.run( reinterpret_cast<void*>(&clntSocket) , reinterpret_cast<void*>(&addr) );
+			server.run( pInParams , pOutParams );
+			int resultCnt = resultList.size();
+
+			for( int i=0; i<resultCnt; ++i )
+			{
+				SelectResult result = resultList.front();
+
+				clntSocket = result.fd;
+				server.handler( result.event , clntSocket );
+				
+				resultList.pop_front();
+			}
 		} 
 		catch( Select_Ex e ) {
-			LOG::getInstance()->printLOG( "EXCEPT" , "ERROR" , e.what() );
-			LOG::getInstance()->writeLOG( "EXCEPT" , "ERROR" , e.what() );
+			pLog->printLOG( "EXCEPT" , "ERROR" , e.what() );
+			pLog->writeLOG( "EXCEPT" , "ERROR" , e.what() );
 			continue;
 		}
 		
-		//--- Event handling ---//
-		switch( result ) {
-
-			case INVALID :	// Invalid type of event
-
-				msgHandler.invalidHandler();
-				break;
-
-			case ACCEPT :	// Connection
-
-				msgHandler.acceptHandler( sessionMgr , clntSocket , string( "LoginServer" ) );
-				msgProc.processMSG();
-				break;
-
-			case INPUT :	// Got messages
-				try {
-					void *pParams[1] = { &sessionMgr };
-					msgHandler.inputHandler( clntSocket );
-					msgProc.processMSG( pParams );
-					sessionMgr.refresh( clntSocket );	// Reset timer
-				}
-				catch( TCP::NoData_Ex e )
-				{
-					sessionMgr.expired( clntSocket );
-					server.farewell( clntSocket );
-				}
-				catch( TCP::Connection_Ex e )
-				{
-					//--- Set free ---//
-					sessionMgr.expired( clntSocket );
-					server.farewell( clntSocket );
-				}
-				break;
-
-			case INTR :	// Signal after HB_Timer handler called
-			{
-				//--- Set invalid sessions free ---//
-				try{
-					const list<Session*>& sessionList = sessionMgr.getSessionList();
-
-					for( auto pSession : sessionList )
-					{
-						if( sessionMgr.validationCheck( pSession ) == false )
-						{	
-							int invalidSessionId = pSession->getSessionId();
-
-							//--- Set free ---//
-							sessionMgr.expired( invalidSessionId );
-							server.farewell( invalidSessionId );
-
-							break;
-						}
-					}
-				}
-				catch( Not_Found_Ex e ) {
-				}
-			}
-			default	:	// Undefined
-				break;
-		}
 	}
 
-	sessionMgr.expireAll();
-	userDB.destroy();
+	if( pLog != nullptr)
+		delete(pLog);
 
 	return 0;
 }

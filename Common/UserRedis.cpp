@@ -12,9 +12,6 @@ void UserRedis::connect()
 
     try{
         Redis::connect();
-        LOG::getInstance()->printLOG( "REDIS" , "OK" , logStr );
-        LOG::getInstance()->writeLOG( "REDIS" , "OK" , logStr );
-
         m_isConn = true;
     }
     catch( RedisException::Connection_Ex e )
@@ -31,13 +28,10 @@ void UserRedis::disconnect()
     Redis::disconnect();
     m_isConn = false;
 
-    if( pInstance != nullptr )
-        delete( pInstance );
-
-    const string logStr = "Redis disconnection";
-    
-    LOG::getInstance()->printLOG( "REDIS" , "OK" , logStr );
-    LOG::getInstance()->writeLOG( "REDIS" , "OK" , logStr );
+    if( m_pInstance != nullptr ){
+        delete( m_pInstance );
+        m_pInstance = nullptr;
+    }
 }
 
 const string UserRedis::hmgetCommand( const string &key , list<string> &fields )
@@ -83,7 +77,6 @@ const string UserRedis::hmgetCommand( const string &key , list<string> &fields )
         LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : " + result );
         LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + result );
     }
-    
     freeReplyObject(pReply);
 
     return result;
@@ -149,6 +142,7 @@ const list<string> UserRedis::lrangeCommand( const string &key , const string &b
         LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + " result(s)" );
         LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + " result(s)" );
     }
+
     freeReplyObject(pReply);
     
     return results;
@@ -161,8 +155,9 @@ void UserRedis::lpushCommand( const string &key , list<string> &values )
     string cmd = "LPUSH " + key + " {";
 
     for( auto value : values )
+    {
         cmd += value;
-
+    }
     cmd += "}";
 
     redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
@@ -186,7 +181,6 @@ void UserRedis::lpushCommand( const string &key , list<string> &values )
         LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + " success");
         LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + " success" );
     }
-
     freeReplyObject(pReply);
 }
 
@@ -392,12 +386,10 @@ void UserRedis::cleanAll()
     {
          keys.emplace_back( pReply->element[1]->element[i]->str );
     }
-
     freeReplyObject(pReply);
-
     string cmd = "del ";
 
-    for(auto key : keys )
+    for( auto key : keys )
     {
         cmd += key;
         cmd += ' ';

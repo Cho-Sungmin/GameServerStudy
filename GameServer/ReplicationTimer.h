@@ -18,7 +18,8 @@ public:
 	ReplicationTimer( RoomManager &roomMgr , int _fd , int sec=0 , int nsec=100000000 )    // 100ms
 			:  Timer(sec , nsec) , m_fd(_fd) , m_roomMgr(roomMgr)
 	{
-		struct sigaction action;
+		struct sigaction action = {0};
+		
 		action.sa_flags	= SA_SIGINFO;
 		action.sa_sigaction	= handler;
 
@@ -54,6 +55,7 @@ void ReplicationTimer::handler( int signo , siginfo_t *pInfo , void *uc )
 		header.type = PACKET_TYPE::REQ;
 		header.func = FUNCTION_CODE::REQ_REPLICATION;
 		header.len = payload.getLength();
+		header.sessionId = pRepTimer->m_fd;
 
 		OutputByteStream packet( TCP::MPS );
 		header.write( packet );
@@ -64,7 +66,7 @@ void ReplicationTimer::handler( int signo , siginfo_t *pInfo , void *uc )
 		
 		TCP::send_packet( pRepTimer->m_fd , ibstream );
 		LOG::getInstance()->writeLOG( ibstream , LOG::TYPE::SEND );
-		
+	
 		ibstream.close();
 	}
 }

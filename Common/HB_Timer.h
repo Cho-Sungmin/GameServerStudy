@@ -15,7 +15,7 @@ public:
 	HB_Timer( int _fd , int sec=3 , int nsec=0 )
 			: Timer(sec , nsec), m_fd(_fd)
 	{
-		struct sigaction action;
+		struct sigaction action = {0};
 
 		action.sa_flags	= SA_SIGINFO;
 		action.sa_sigaction	= handler;

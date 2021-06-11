@@ -34,6 +34,8 @@ void UserDB::getUserData( UserInfo &data )
         data.setAge( m_pRes->getInt( "age" ) );
 
         result = 1;
+        
+        finalizeQuery();
     }
 
     const string logStr = to_string(result) + " result(s) founded";
@@ -78,6 +80,7 @@ void UserDB::verifyUserInfo( void **inParams , void **outParams )
             m_pRedis->hmsetUserInfo( userInfo );
         }
         
+        pPacket->close();
         *pPacket = InputByteStream( resPacket );
         resPacket.close();
     }

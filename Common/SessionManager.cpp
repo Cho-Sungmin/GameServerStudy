@@ -6,7 +6,12 @@
 Session *SessionManager::getSessionById ( int session_id )
 {
     auto itr = find_if( m_sessionList.begin() , m_sessionList.end() , 
-                    [ &session_id ]( const Session* pSession ) { return pSession->getSessionId() == session_id; } );
+                    [ &session_id ]( const Session* pSession ) { 
+                        if( pSession != nullptr ) 
+                            return pSession->getSessionId() == session_id; 
+                        else
+                            return false;
+                    } );
 
     if( itr == m_sessionList.end() )
     {
@@ -39,11 +44,11 @@ void SessionManager::expired( int sessionId )
     try{
         Session *pSession = getSessionById( sessionId );
 
-        if( pSession->m_pHBTimer != nullptr )
+        if( pSession != nullptr )
         {	
             pSession->expireTimers();
             m_sessionList.remove( pSession );
-            delete( pSession );
+            delete pSession;
             LOG::getInstance()->printLOG( "SESSION" , "NOTI" , "Expired session[" + to_string( sessionId ) + "]" );
         }
     }catch( Not_Found_Ex e )
@@ -53,12 +58,16 @@ void SessionManager::expired( int sessionId )
 
 void SessionManager::expireAll()
 {
-    for( auto pSession : m_sessionList )
+    int cnt = m_sessionList.size();
+
+    for( int i=0; i<cnt; ++i )
     {
-        if( pSession != nullptr )
-            delete(pSession);
+        Session *pSession = m_sessionList.front();
+        if( pSession != nullptr ){
+            delete( pSession );
+        }
+        m_sessionList.pop_front();
     }
-    LOG::getInstance()->printLOG( "DEBUG" , "MEMORY" , "Free all sessions" );
 }
 
 void SessionManager::refresh( int sessionId )

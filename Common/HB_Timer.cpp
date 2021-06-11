@@ -8,7 +8,7 @@ void HB_Timer::handler( int signo , siginfo_t* info , void* uc )
 	int timeout = pTimer->m_timeout;
 	int state = pTimer->m_state;
 	int	dest_fd	= pTimer->m_fd;
-
+ 
 	// Case : TIMEOUT --- assume that the session is disconnected //
 	if( timeout > 3 ) {
 
@@ -30,7 +30,7 @@ void HB_Timer::handler( int signo , siginfo_t* info , void* uc )
 
 		try {
 			TCP::send_packet( dest_fd , packet );
-			LOG::getInstance()->printLOG( packet , LOG::TYPE::SEND );
+			//LOG::getInstance()->writeLOG( packet , LOG::TYPE::SEND );
 		}
 		catch( TCP::Connection_Ex e )
 		{

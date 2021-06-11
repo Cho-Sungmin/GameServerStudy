@@ -28,6 +28,7 @@ class PlayerObject : public GameObject {
     Vector2 velocity;
 
     PlayerObject() = default;
+    virtual ~PlayerObject() = default;
 public:
     enum { CLASS_ID = 'POBJ' };
     virtual uint32_t getClassId() { return CLASS_ID; }

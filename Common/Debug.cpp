@@ -1,12 +1,20 @@
 #include "Debug.h"
 #include "Header.h"
+#include <sstream>
+#include "execinfo.h"
 
 string LOG::getCurrentTime()
 {
     time_t now = time(0);
-    struct tm* timeStruct = localtime(&now);
-    char buf[50] = {0x00,};
-    strftime( buf , sizeof(buf) , "[%Y-%m-%d+%X]", timeStruct );
+
+    struct tm timeStruct;
+    //nolocks_localtime( &timeStruct , now , -(9*3600) , 0 );
+     if( localtime_r( &now , &timeStruct ) == nullptr ){
+        perror("ERROR : ");
+        return "";
+    }
+    char buf[100] = {0x00,};
+    strftime( buf , sizeof(buf) , "[%Y-%m-%d+%X]", &timeStruct );
 
     return buf;
 }
@@ -14,9 +22,13 @@ string LOG::getCurrentTime()
 string LOG::getCurrentDate()
 {
     time_t now = time(0);
-    struct tm* timeStruct = localtime(&now);
-    char buf[20] = {0x00,};
-    strftime( buf , sizeof(buf) , "%Y%m%d", timeStruct );
+    struct tm timeStruct;
+    if( localtime_r( &now , &timeStruct ) == nullptr ){
+        perror("ERROR : ");
+        return "";
+    }
+    char buf[100] = {0x00,};
+    strftime( buf , sizeof(buf) , "%Y%m%d", &timeStruct );
 
     return buf;
 }
@@ -43,14 +55,17 @@ void LOG::printLOG( InputByteStream& packet , int type )
     cout.width(10);
     cout.setf(ios_base::left);
     cout << type_str;  
-    cout << log_str << endl;
+    cout << log_str << '\n';
+    cout.flush();
 }
 
 void LOG::writeLOG( InputByteStream& packet , int type )
 {
     string type_str( 3 , ' ' );
+
     const string time_str = getCurrentTime();
     const string log_str = getLog( packet );
+    stringstream logStream;
 
     switch(type)
     {
@@ -64,18 +79,27 @@ void LOG::writeLOG( InputByteStream& packet , int type )
         break;
     }
 
-    file.open( fileName + "_" + getCurrentDate() + ".txt" , ios::out | ios::app );
+    logStream.setf(ios_base::left);
+    logStream << time_str;
+    logStream.width(13);
+    logStream << type_str;
+    logStream << log_str << '\n';
+    logStream.flush();
 
-    //--- write log ---//
-    file << time_str;
-    file.width(13);
-    file << type_str;  
-    file << log_str << endl;
-
-    if( file.is_open() )
+    if( m_file.is_open() )
     {
-        file.close();
+       // m_mutex.lock();
+
+        //--- write log ---//
+        m_file << logStream.str();
+        m_file.flush();
+
+
+       // m_mutex.unlock();
     }
+    else
+        printLOG( "FILE" , "ERROR" , "Failed to open log file" );
+
 }
 
 string LOG::getHeaderString( const Header& header )
@@ -119,7 +143,7 @@ string LOG::getHexaString( const char* bytes , int size )
 {
     string hexStr = "[ ";
 
-    for( int i=0; i<size; i++ )
+    for( int i=0; i<size; ++i )
     {
         char character[12];
 
@@ -266,9 +290,10 @@ void LOG::printLOG( const string &tagStr , const string &stateStr , const string
     cout.width(10);
     cout.setf(ios_base::left);
     cout << tag_str << ' ';
-    cout.width(10);
+    cout.width(13);
     cout << state_str;
-    cout << logStr << endl;
+    cout << logStr << '\n';
+    cout.flush();
 }
 
 void LOG::writeLOG( const string &tagStr , const string &stateStr , const string &logStr )
@@ -277,19 +302,104 @@ void LOG::writeLOG( const string &tagStr , const string &stateStr , const string
     string state_str = "   [" + stateStr + "]";
     const string time_str = getCurrentTime();
 
-    file.open( fileName + "_" + getCurrentDate() + ".txt" , ios::out | ios::app );
-
-    //--- write log ---//
-    file << time_str;
-    file.width(13);
-    file.setf(ios_base::left);
-    file << tag_str << ' ';
-    file.width(13);
-    file << state_str;
-    file << logStr << endl;
-
-    if( file.is_open() )
+    if( m_file.is_open() )
     {
-        file.close();
+        //--- write log ---//
+        m_file << time_str;
+        m_file.width(13);
+        m_file.setf(ios_base::left);
+        m_file << tag_str << ' ';
+        m_file.width(13);
+        m_file << state_str;
+        m_file << logStr << '\n';
+        m_file.flush();
     }
+    else
+        printLOG( "FILE" , "ERROR" , "Failed to open log file" );  
+    
 }
+
+int LOG::is_leap_year( int year )
+{
+    if( ( (year%4 == 0) && (year%100 != 0) ) || (year%400 == 0) )
+        return 1;
+    else    
+        return 0;
+}
+
+
+void LOG::nolocks_localtime(struct tm *tmp, time_t t, time_t tz, int dst) {
+     const time_t secs_min = 60;     
+     const time_t secs_hour = 3600;     
+     const time_t secs_day = 3600*24;      
+     
+     t -= tz;                           /* Adjust for timezone. */     
+     t += 3600*dst;                     /* Adjust for daylight time. */     
+     time_t days = t / secs_day;        /* Days passed since epoch. */     
+     time_t seconds = t % secs_day;     /* Remaining seconds. */      
+     
+     tmp->tm_isdst = dst;    
+     tmp->tm_hour = seconds / secs_hour;    
+     tmp->tm_min = (seconds % secs_hour) / secs_min;    
+     tmp->tm_sec = (seconds % secs_hour) % secs_min;    
+     
+     /* 1/1/1970 was a Thursday, that is, day 4 from the POV of the tm structure * where sunday = 0, so to calculate the day of the week we have to add 4 * and take the modulo by 7. */     
+     tmp->tm_wday = (days+4)%7;    
+     /* Calculate the current year. */     
+     tmp->tm_year = 1970;    
+     while(1) {        
+          /* Leap years have one day more. */         
+          time_t days_this_year = 365 + is_leap_year(tmp->tm_year);        
+          if (days_this_year > days) break;         
+          days -= days_this_year;        
+          tmp->tm_year++;    
+   }    
+   tmp->tm_yday = days;  /* Number of day of the current year. */
+  
+    /* We need to calculate in which month and day of the month we are. To do * so we need to skip days according to how many days there are in each * month, and adjust for the leap year that has one more day in February. */     
+    int mdays[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};    
+    mdays[1] += is_leap_year(tmp->tm_year);    
+    
+    tmp->tm_mon = 0;   
+    while(days >= mdays[tmp->tm_mon]) {        
+    days -= mdays[tmp->tm_mon];        
+    tmp->tm_mon++;     
+    }    
+    
+    tmp->tm_mday = days+1;  /* Add 1 since our 'days' is zero-based. */     
+    tmp->tm_year -= 1900;   /* Surprisingly tm_year is year-1900. */
+
+ 
+}
+
+#if 0
+//segfault가 발생했을 때 호출될 함수
+
+void LOG::sighandler(int sig)
+{
+    void *array[10];
+    size_t size;
+    char **strings;
+    size_t i;
+
+    size = backtrace(array, 10);
+
+    strings = backtrace_symbols(array, size);
+
+ 
+
+    //3. 앞에서 터득한 backtrace 정보 출력. 단 sighandler 스택 프레임은 제외하기 위해 2번 프레임부터 출력합니다.
+
+    for(i = 2; i < size; i++)
+
+        printf("%d: %s\n", i - 2, strings[i]);
+
+ 
+
+    free(strings);
+
+ 
+
+    exit(1);
+}
+#endif

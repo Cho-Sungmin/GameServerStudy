@@ -7,8 +7,8 @@ class RoomMessageHandler : public MessageHandler {
 public:
 	//--- Constructor ---//
 	RoomMessageHandler() = default;
-	RoomMessageHandler( MessageQueue &queue , const string &fileName ) 
-    : MessageHandler(queue,fileName) { }
+	RoomMessageHandler( MessageQueue &queue ) 
+    : MessageHandler(queue){ }
 
     void resEnterRoom( void **inParams , void **outParams );
 	void resRoomList( void **inParams , void **outParams );

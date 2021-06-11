@@ -9,13 +9,13 @@ bool MessageQueue::isEmpty()
 
 void MessageQueue::enqueue( InputByteStream&& data )
 {
-	queue.push( move( data ) );
+	queue.push( std::move( data ) );
 }
 
 void MessageQueue::dequeue( InputByteStream& data )
 {
 	if( !isEmpty() ) {
-		data = move(queue.front());
+		data = std::move(queue.front());
 		queue.pop();
 		
 	}else

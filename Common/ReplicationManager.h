@@ -13,6 +13,12 @@ public:
     ReplicationManager( GameObjectManager *pGoMgr )
     {
         m_pGameObjectMgr = pGoMgr;
+    } 
+
+    ~ReplicationManager()
+    { 
+        if( m_pGameObjectMgr != nullptr )
+            delete m_pGameObjectMgr;
     }
 
     //--- To hosts ---//

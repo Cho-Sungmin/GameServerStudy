@@ -40,7 +40,7 @@ void TCP::send_packet( int dest_fd , InputByteStream &packet )
 		LOG::getInstance()->writeLOG( "TCP" , "WARN" , ex.what() );
         throw ex;
     } 
-    
+
     len = 0;
     offset = 0;
     
@@ -53,7 +53,7 @@ void TCP::send_packet( int dest_fd , InputByteStream &packet )
     while( body_len > 0 )
     {
         len = write( dest_fd , payloadBuf + offset  , body_len );
-
+    
         if( len < 0 )
         {
             if( errno == EINTR )
@@ -93,6 +93,7 @@ void TCP::recv_packet( int src_fd , OutputByteStream &packet )
     char headerBuf[head_len] = { 0x00 , };
 
     while( head_len > 0 ){
+        
         len = read( src_fd , headerBuf + offset , head_len );
 
         if( len < 0 )
@@ -138,9 +139,9 @@ void TCP::recv_packet( int src_fd , OutputByteStream &packet )
     char payloadBuf[body_len] = { 0x00 , };
 
     while( body_len > 0 )
-    {
+    {   
         len = read( src_fd , payloadBuf + offset , body_len );
-        
+
         if( len < 0 )
         {
             if( errno == EINTR )

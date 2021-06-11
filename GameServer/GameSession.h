@@ -33,7 +33,8 @@ public:
 			if( m_pRepTimer->getState() != TIMER_SLEEP )
 				m_pRepTimer->asleep();
 
-			delete m_pRepTimer;
+			delete m_pRepTimer ;
+			m_pRepTimer = nullptr;
 		}
 	}
 

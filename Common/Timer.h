@@ -25,7 +25,6 @@ public:
 	}
 };
 class Stop_Ex : public std::exception {
-	std::string errStr;
 public:
 	virtual const char *what() const noexcept override {
 		return "stop() Exception!";

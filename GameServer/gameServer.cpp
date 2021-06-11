@@ -1,130 +1,62 @@
 #include <iostream>
 #include <list>
 
-#include "SelectIOServer.h"
 #include "ServerAdaptor.h"
-#include "RoomManager.h"
-#include "GameMessageHandler.h"
-#include "MessageProcessor.h"
-#include "Session.h"
-
-#include "UserDB.h"
-#include "UserRedis.h"
+#include "GameServer.h"
 
 using namespace std;
 
 
-UserRedis *UserRedis::pInstance;
+UserRedis *UserRedis::m_pInstance;
+LOG *LOG::m_pInstance;
 
 int main()
 {
-	UserRedis *pRedis = UserRedis::getInstance();
-	UserDB userDB( pRedis );
-
-	ServerAdaptor<SelectIOServer> server;
-	SessionManager sessionMgr;
-	MessageQueue msgQ;
-	list<RoomManager> roomList;
-
-	GameMessageHandler msgHandler( msgQ , "GameServer" );
-	MessageProcessor msgProc( msgQ , "GameServer" );
-
-	int	result = 0;
-
-	//--- Register handlers ---//
-	msgProc.registerProcedure( userDB );
-	msgProc.registerProcedure( msgHandler );
+	LOG *pLog = LOG::getInstance( "GameServer" );
+	ServerAdaptor<GameServer> server;
+	list<SelectResult> resultList;
 
 	//--- Init server ---//
 	server.init("9933");
-	server.ready();
-
-	//--- Database Connection ---//
-	try {
-		pRedis->connect();
-		userDB.init();
-	}
-	catch( RedisException::Connection_Ex e )
-	{
-		// TODO : Reconnection routine //
-		cout << "Process terminate" << endl;
+	if( !server.ready() )
 		return 0;
-	}
-	
+
+	int	clntSocket = -1;
+	struct sockaddr_in addr;
+
+	void **pInParams = nullptr;
+	void *pOutParams[2] = { &resultList , &addr };
 	
 	while( server.getState() != STOP ) 
 	{
-		int	clntSocket = -1;
-		struct sockaddr_in addr;
-		
+		clntSocket = -1;
+
 		try {
-			result = server.run( reinterpret_cast<void*>(&clntSocket) , reinterpret_cast<void*>(&addr) );
+			server.run( pInParams , pOutParams );
+			int resultCnt = resultList.size();
+
+			for( int i=0; i<resultCnt; ++i )
+			{
+				SelectResult result = resultList.front();
+
+				clntSocket = result.fd;
+				server.handler( result.event , clntSocket );
+				
+				resultList.pop_front();
+			
+			}	
 		} 
 		catch( Select_Ex e ) {
-			cout << e.what() << endl;
+			pLog->printLOG( "EXCEPT" , "ERROR" , e.what() );
+			pLog->writeLOG( "EXCEPT" , "ERROR" , e.what() );
 			continue;
-		}
-		
-
-		//--- Event handling ---//
-		switch( result ) {
-
-			case INVALID :	// Invalid type of event
-
-				msgHandler.invalidHandler();
-				break;
-
-			case ACCEPT :	// Connection
-				msgHandler.acceptHandler( sessionMgr , clntSocket , string( "GameServer" ) );
-				msgProc.processMSG();
-				break;
-
-			case INPUT :	// Got messages
-
-				try {
-					void *pParams[2] = { &sessionMgr , &roomList };
-					msgHandler.inputHandler( clntSocket );
-					msgProc.processMSG( pParams );
-					sessionMgr.refresh( clntSocket );	// Reset timer
-				}
-				catch( TCP::Connection_Ex e )
-				{
-					//--- Set free ---//
-					sessionMgr.expired( clntSocket );
-					server.farewell( clntSocket );
-				}
-
-				
-				break;
-
-			case INTR :	// Signal after HB_Timer handler called
-			{
-				//--- Set invalid sessions free ---//
-				try{
-					const list<Session*> &sessionList = sessionMgr.getSessionList();
-
-					for( auto pSession : sessionList )
-					{
-						if( sessionMgr.validationCheck( pSession ) == false )
-						{	
-							int invalidSessionID = pSession->getSessionId();
-
-							//--- Set free ---//
-							sessionMgr.expired( invalidSessionID );
-							server.farewell( invalidSessionID );
-						}
-					}
-				}
-				catch( Not_Found_Ex e ) { 
-				}
-			}
-			default	:	// Undefined
-				break;
 		}
 	}
 
-	userDB.destroy();
+	if( pLog != nullptr)
+	{
+		delete(pLog);
+	}
 
 	return 0;
 }
-	

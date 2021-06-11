@@ -38,6 +38,11 @@ public:
         m_sessionMgr.addSession( pNewSession );
     }
 
+    void updateSessions()
+    {
+        m_sessionMgr.deleteSession( nullptr );
+    }
+
     list<GameObject*> getGameObjects()
     { return m_gameObjectMgr.getGameObjectAll(); }
 };

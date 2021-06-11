@@ -2,6 +2,20 @@
 #include "UserRedis.h"
 #include "GameSession.h"
 
+void GameMessageHandler::createBasicGameObjects( RoomManager &manager , list<GameObject*> &basicObjList )
+{
+    //--- Create player object for new session ---//
+    ReplicationHeader header( Action::CREATE , 0 , PlayerObject::CLASS_ID );
+    OutputByteStream obstream( TCP::MPS );
+    header.write( obstream );
+    InputByteStream ibstream( obstream );
+    obstream.close();
+    manager.m_replicationMgr.replicate( ibstream );
+    ibstream.close();
+
+    basicObjList = manager.getGameObjects();
+}
+
 void GameMessageHandler::resJoinGame( void **inParams , void **outParams )
 {
     SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( inParams[0] );
@@ -20,61 +34,105 @@ void GameMessageHandler::resJoinGame( void **inParams , void **outParams )
     UserInfo userInfo;
     userInfo.setId( userId );
 
+    UserRedis *pInstance = UserRedis::getInstance();
     //--- Result from redis HMGET command ---//
-    UserRedis::getInstance()->hmgetUserInfo( userInfo );
+    try{
+        pInstance->hmgetUserInfo( userInfo );
+    }
+    catch( UserRedisException e) { }
+
+    Room room(roomId);
+    pInstance->hmgetRoom( room );
 
     //--- Update session's pointer in the room list ---//
     bool result = false;
-    RoomManager *pTargetRoom;
+    RoomManager *pTargetRoom = nullptr;
 
-    for( auto &mgr : *pRoomList)
+    if( room.roomId == roomId )
     {
-        if( mgr.isEqual( roomId ) )
+        for( auto &room : *pRoomList )
         {
-            try{
-                Session *pOldSession = pSessionMgr->getSessionById( header.sessionId );
-                GameSession *pNewSession = new GameSession( move(*pOldSession) );
-                delete( pOldSession );
-                
-                pSessionMgr->addSession( pNewSession );
-                mgr.acceptSession( pSessionMgr->getSessionById( header.sessionId ) );
-                pTargetRoom = &mgr;
-                pNewSession->init( mgr );
-
-                result = true;
+            if( room.isEqual( roomId ) )
+            {
+                pTargetRoom = &room;
                 break;
             }
-            catch( Not_Found_Ex e ) {}
         }
+
+        if( pTargetRoom == nullptr )
+        {
+            pRoomList->emplace_back( room );    
+            pTargetRoom = &pRoomList->back();
+        }
+
+        try{
+            //--- Session to game session ---//
+            Session *pOldSession = pSessionMgr->getSessionById( header.sessionId );
+            GameSession *pNewSession = new GameSession( move(*pOldSession) );
+            pSessionMgr->deleteSession( pOldSession );
+            
+            delete( pOldSession );
+            
+            pSessionMgr->addSession( pNewSession );
+            pTargetRoom->acceptSession( pNewSession );
+            pNewSession->init( *pTargetRoom );
+            pNewSession->startTimers();
+
+            result = true;
+        }
+        catch( Not_Found_Ex e ) { }
     }
 
-    header.type = PACKET_TYPE::RES;
     OutputByteStream resPacket( TCP::MPS );
+    header.type = PACKET_TYPE::RES;
 
-    //--- CASE : The request is VALID ---//
-    if( result == true )
+    if( result )
     {
+        list<GameObject*> basicObjects;
+        createBasicGameObjects( *pTargetRoom , basicObjects );
+
         //--- Set response packet ---//
         OutputByteStream payload( TCP::MPS );
-        
-        for( auto obj : pTargetRoom->getGameObjects() )
+
+        for( auto obj : basicObjects ) 
+        {
             pTargetRoom->m_replicationMgr.replicateCreate( payload , obj );
-
-        header.len = payload.getLength();
+        }
         header.func = FUNCTION_CODE::RES_JOIN_GAME_SUCCESS;
-
+        header.len = payload.getLength();
         header.write( resPacket );
         resPacket << payload;
     }
-    //--- CASE : The request is INVALID ---//
     else
     {
         header.func = FUNCTION_CODE::RES_JOIN_GAME_FAIL;
         header.len = 0;
         header.write( resPacket );
     }
-    
-    *pPacket = InputByteStream( &resPacket );
+    pPacket->close();
+    *pPacket = InputByteStream( resPacket );
+    resPacket.close();
+}
+
+void GameMessageHandler::replicate( void **inParams , void **outParams )
+{
+    list<RoomManager> *pRoomList = reinterpret_cast<list<RoomManager>*>( inParams[1] );
+    InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( outParams[0] );
+    Header header; header.read( *pPacket );
+
+    RoomManager *pTargetRoom = nullptr;
+
+    for( auto &room : *pRoomList )
+    {
+        if( room.isPlayer( header.sessionId ) )
+        {
+            pTargetRoom = &room;
+            break;
+        }
+    }
+
+    if( pTargetRoom != nullptr )
+        pTargetRoom->m_replicationMgr.replicate( *pPacket );
 }
 
 void GameMessageHandler::registerHandler( map<int , function<void(void**,void**)>> &h_map )
@@ -83,6 +141,13 @@ void GameMessageHandler::registerHandler( map<int , function<void(void**,void**)
                                     [this](void **in , void **out) 
                                     { 
                                         this->resJoinGame(in,out); 
+                                    } 
+                                ) 
+                );
+    h_map.insert( make_pair( (int)FUNCTION_CODE::NOTI_REPLICATION , 
+                                    [this](void **in , void **out) 
+                                    { 
+                                        this->replicate(in,out); 
                                     } 
                                 ) 
                 );

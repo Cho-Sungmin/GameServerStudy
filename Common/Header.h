@@ -11,6 +11,8 @@
 
 #define MAX_LINE	200
 
+using namespace std;
+
 
 //*** MSG TYPE ***//
 

@@ -67,9 +67,8 @@ bool Server::ready()
         return false;
 }
 
-int Server::run( void *lParam , void *rParam )
+void Server::run( void **inParams , void **outParam )
 {
-    return 0;
 }
 
 void Server::stop()

@@ -29,7 +29,7 @@ public:
 
 	virtual void init( const char *port );
     virtual bool ready();
-    virtual int run( void *lParam , void *rParam );
+    virtual void run( void **inParams , void **outParams );
     virtual void stop();
 	//--- Clear expired fd ---//
     virtual void farewell( int expired_fd ); 

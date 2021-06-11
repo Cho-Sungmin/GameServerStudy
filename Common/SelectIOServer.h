@@ -33,11 +33,16 @@ public:
 };
 
 
+struct SelectResult {
+	int fd;
+	EventType event;
+};
+
 
 class SelectIOServer : public Server {
 
 	fd_set m_readfds;
-    uint32_t m_fdMax = 0;
+    int m_fdMax = 0;
 	int	m_state	= STOP;
 public:
 	//--- Constructor ---//
@@ -50,7 +55,7 @@ public:
 	int getState() const;
 	virtual void init( const char *port ) override;
 	virtual bool ready();
-	virtual int run( void *lParam=nullptr , void *rParam=nullptr ) override;
+	virtual void run( void **inParams=nullptr , void **outParams=nullptr ) override;
     virtual void stop();
 	//--- Clear expired fd ---//
 	virtual void farewell( int expired_fd ) override;

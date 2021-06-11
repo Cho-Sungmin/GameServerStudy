@@ -8,7 +8,6 @@
 #include "Room.h"
 #include "Parser.h"
 
-using namespace std;
 
 class UserRedisException : public exception {
     string command = "";
@@ -25,21 +24,21 @@ class UserRedis : public Redis {
 
     UserRedis() = default;
 
+public:
     ~UserRedis()
     {
         if( m_isConn )
             disconnect();
     }
 
-public:
-    static UserRedis *pInstance;
+    static UserRedis *m_pInstance;
 
     static UserRedis *getInstance()
     {
-        if( pInstance == nullptr )
-            pInstance = new UserRedis();
+        if( m_pInstance == nullptr )
+            m_pInstance = new UserRedis();
 
-        return pInstance;
+        return m_pInstance;
     }
 
     bool isConn();

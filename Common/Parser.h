@@ -1,8 +1,9 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <string>
+
 #include <sstream>
+#include "Debug.h"
 
 using namespace std;
 
@@ -20,8 +21,9 @@ public:
         list<string> result;
         int cursor = 0;
         int idx = 0;
+        int len = str.length();
 
-        while( cursor < str.length() )
+        while( cursor < len )
         {
             idx = str.find(delim , idx);
             
@@ -38,7 +40,9 @@ public:
 
     static int findChar( const char str[] , const char c )
     {
-        for( int i=0; i<strlen(str); i++ )
+        int len = strlen(str);
+
+        for( int i=0; i<len; i++ )
         {
             if( str[i] == c )
             {

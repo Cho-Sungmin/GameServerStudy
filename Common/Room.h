@@ -1,11 +1,9 @@
 #ifndef ROOM_H
 #define ROOM_H
 
-#include <string>
 #include "InputByteStream.h"
 #include "OutputByteStream.h"
 
-using namespace std;
 
 struct Room {
     string roomId = "";

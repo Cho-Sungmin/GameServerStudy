@@ -63,7 +63,7 @@ void MySQL::init()
         //--- Create a connection ---//
         m_pDriver = get_driver_instance();
         m_pCon = m_pDriver->connect( "tcp://127.0.0.1:3306" , id , pw );
-    
+
         //- Use database -//
         m_pCon->setSchema( database );
         m_pStmt = m_pCon->createStatement();
@@ -90,13 +90,18 @@ void MySQL::destroy()
     if( m_pStmt != nullptr )
     {
         m_pStmt->close();
-        delete m_pStmt  ;
+        LOG::getInstance()->printLOG( "DEBUG" , "MYSQL" , "destroy()" );
+        delete m_pStmt;
         m_pStmt = nullptr;
     }
     if( m_pCon != nullptr )
     {
         m_pCon->close();
-        delete m_pCon  ;
+        LOG::getInstance()->printLOG( "DEBUG" , "MYSQL" , "destroy()" );
+        delete m_pCon;
         m_pCon = nullptr;
     }
+
+    LOG::getInstance()->printLOG( "MYSQL" , "NOTI" , "DB destroyed" );
+    LOG::getInstance()->writeLOG( "MYSQL" , "NOTI" , "DB destroyed" );
 }

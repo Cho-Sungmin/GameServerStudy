@@ -2,12 +2,10 @@
 #define OUTPUT_BYTE_STREAM_H
 
 #include <string>
-#include <string.h>
 #include <type_traits>
 
 #include "ByteStream.h"
 
-using namespace std;
 class InputByteStream;
 
 class OutputByteStream : public ByteStream {
@@ -22,7 +20,9 @@ public:
 template <typename T>
     void write( T in );
 
-    OutputByteStream& operator=( const OutputByteStream &obstream )
+    OutputByteStream &operator<<( InputByteStream &ibstream );
+
+    OutputByteStream &operator=( const OutputByteStream &obstream )
     {
         cursor = obstream.cursor;
         capacity = obstream.capacity;
@@ -31,7 +31,7 @@ template <typename T>
         return *this;
     }
 
-    OutputByteStream& operator<<( OutputByteStream &obstream )
+    OutputByteStream &operator<<( OutputByteStream &obstream )
     {
         write( obstream.getBuffer() , obstream.getLength() );
         obstream.close();
@@ -44,13 +44,13 @@ template <typename T>
 template <typename T>
 void OutputByteStream::write( T in )
 {
-    static_assert( is_arithmetic<T>::value || is_enum<T>::value , "Only supports primitive data types" );
+    static_assert( std::is_arithmetic<T>::value || std::is_enum<T>::value , "Only supports primitive data types" );
 
     int size = sizeof( T );
     write( &in , size );
 }
 
 template <>
-    void OutputByteStream::write( string in );
+    void OutputByteStream::write( std::string in );
 
 #endif

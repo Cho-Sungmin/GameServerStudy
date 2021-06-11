@@ -10,6 +10,7 @@ class GameObject {
 public:
     enum { CLASS_ID = 'GOBJ' };
     static GameObject *createInstance() { return new GameObject(); }
+    virtual ~GameObject() = default;
 
     virtual uint32_t getClassId() { return CLASS_ID; }
 

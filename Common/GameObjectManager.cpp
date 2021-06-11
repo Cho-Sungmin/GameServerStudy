@@ -1,4 +1,5 @@
 #include "GameObjectManager.h"
+#include "Debug.h"
 
 uint32_t GameObjectManager::getObjectId( GameObject *pGameObject )
 {
@@ -24,8 +25,9 @@ list<GameObject*> GameObjectManager::getGameObjectAll()
     list<GameObject*> results;
 
     for( auto raw : m_objectTable )
+    {
         results.push_back( raw.second );
-
+    }
     return results;
 }
 
@@ -48,7 +50,9 @@ void GameObjectManager::removeGameObject( GameObject *pGameObject )
     auto itr = m_idTable.find( pGameObject );
     if( itr != m_idTable.end() )
     {
-        m_idTable.erase( pGameObject );
+        if( pGameObject != nullptr )
+            delete pGameObject;
         m_objectTable.erase( itr->second );
+        itr = m_idTable.erase( itr );  
     }
 }

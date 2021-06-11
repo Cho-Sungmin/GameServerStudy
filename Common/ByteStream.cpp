@@ -1,18 +1,19 @@
 #include "ByteStream.h"
+#include "Debug.h"
 
 char *ByteStream::getBuffer() const
 {   return buffer;  }
 
 void ByteStream::close()
 {
-    cursor = capacity;
-    capacity = 0;
-    
-    if( buffer != nullptr )
+    if( capacity > 0 && buffer != nullptr )
     {
         free( buffer );
         buffer = nullptr;
     }
+
+    cursor = 0;
+    capacity = 0;
 }
 
 void ByteStream::setCursor( BS_FLAG flag )

@@ -58,7 +58,6 @@ void Timer::stop()
     {
         if( timer_settime( m_id , 0 , &spec , NULL ) == -1 )
         {
-            perror("Stop exception : ");
             throw Stop_Ex();
         }else {
             m_state = TIMER_STOP;

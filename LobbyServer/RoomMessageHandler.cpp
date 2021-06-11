@@ -49,6 +49,7 @@ void RoomMessageHandler::resEnterRoom( void **inParams , void **outParams )
         header.write( resPacket );
     }
 
+    pPacket->close();
     *pPacket = InputByteStream( resPacket );
     resPacket.close();
 }
@@ -90,13 +91,13 @@ void RoomMessageHandler::resRoomList( void **inParams , void **outParams )
     }
 
     header.write( resPacket );
+    pPacket->close();
     *pPacket = InputByteStream( resPacket );
     resPacket.close();
 }
 
 void RoomMessageHandler::resMakeRoom( void **inParams , void **outParams )
 {
-    //list<RoomManager> *pRoomList = reinterpret_cast<list<RoomManager>*>( inParams[0] );
     InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( outParams[0] );	
     Header header; header.read( *pPacket );
     header.type = PACKET_TYPE::RES;
@@ -131,6 +132,7 @@ void RoomMessageHandler::resMakeRoom( void **inParams , void **outParams )
         header.write( resPacket );
     }
 
+    pPacket->close();
     *pPacket = InputByteStream( resPacket );
     resPacket.close();
 

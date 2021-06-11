@@ -31,12 +31,14 @@ void MessageHandler::acceptHandler( SessionManager &sessionMgr , int clntSocket 
 void MessageHandler::inputHandler( int clntSocket )
 {
     OutputByteStream obstream( TCP::MPS );
-
+	
     try {
         //--- Verify user informations ---//
         TCP::recv_packet( clntSocket , obstream );
+        
         InputByteStream msg( obstream );
-        m_pLog->writeLOG( msg , LOG::TYPE::RECV );
+        obstream.close();
+        LOG::getInstance()->writeLOG( msg , LOG::TYPE::RECV );
         Header header; header.read( msg );
         msg.reUse();
 
@@ -58,16 +60,20 @@ void MessageHandler::inputHandler( int clntSocket )
             default :
                 break;
         }
+
+        msg.close();
     }
     catch( TCP::Connection_Ex e )
     {
-        throw e;
+        obstream.close();
+        throw e;  
     }
     catch( TCP::NoData_Ex e )
     {
+        obstream.close();
         throw e;
     }
-    obstream.close();
+    
 }
 void MessageHandler::invalidHandler()
 {

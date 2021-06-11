@@ -7,25 +7,26 @@
 #include "MessageQueue.h"
 #include "Debug.h"
 #include "SessionManager.h"
+#include "TCP.h"
 
 using namespace std;
 
 
 class MessageHandler {
-	const string m_logFileName;
 	MessageQueue &m_msgQ;
-	LOG *m_pLog;
+	InputByteStream m_ibstream;
+	OutputByteStream m_obstream;
 
 public:
 	//--- Constructor ---//
 	MessageHandler() = default;
-	MessageHandler( MessageQueue &queue , const string &fileName )
-					: 	m_msgQ( queue ),
-				 		m_logFileName( fileName )
+	MessageHandler( MessageQueue &queue )
+					: 	m_msgQ( queue ) , m_ibstream( TCP::MPS ) , m_obstream( TCP::MPS )
 	{
 		// init something //
-		m_pLog = LOG::getInstance( m_logFileName );
 	}
+
+	~MessageHandler() { m_ibstream.close(); m_obstream.close(); }
 
 	//--- Functions ---//
 	void acceptHandler( SessionManager &sessionMgr , int clntSocket , const string &welcomeMSG = "" );

@@ -6,18 +6,24 @@
 #include <fstream>
 #include "Header.h"
 #include <cassert>
+#include <mutex>
 
 
 using namespace std;
 
-class LOG {
-    fstream file;
-    string fileName = "";
-    static LOG* pInstance;
 
+class LOG {
+    fstream m_file;
+    string m_fileName = "";
+    mutex  m_mutex;
+    static LOG* m_pInstance;
+    
     LOG( const string &_fileName ) {
-        fileName = _fileName;
-        assert( fileName != "" );
+        m_fileName = _fileName;
+        assert( m_fileName != "" );
+
+        if( !m_file.is_open() )
+            m_file.open( m_fileName + "_" + getCurrentDate() + ".txt" , ios::out | ios::app );
     }
 
 public:   
@@ -28,16 +34,23 @@ public:
 
     ~LOG()
     {
-        if( pInstance != nullptr )
-            delete( pInstance );
+        if( m_file.is_open() )
+            m_file.close();
+
+        if( m_pInstance != nullptr )
+        {
+            LOG::getInstance()->printLOG( "DEBUG" , "LOG" , "~LOG()" );
+            delete m_pInstance;
+            m_pInstance = nullptr;
+        }
     }
 
-    static LOG* getInstance( const string& fileName = "")
+    static LOG* getInstance( const string& fileName = "" )
     {
-        if( pInstance == nullptr )
-            pInstance = new LOG( fileName );
+        if( m_pInstance == nullptr )
+            m_pInstance = new LOG( fileName );
         
-        return pInstance;  
+        return m_pInstance;  
     }
 
     //--- For all ---//
@@ -47,6 +60,8 @@ public:
     void printLOG( InputByteStream& packet , int type );
     void writeLOG( InputByteStream& packet , int type );
 
+    static void sighandler(int sig);
+
 private:
     string getHeaderString( const Header& header );
     const string getLog( InputByteStream& packet );
@@ -55,7 +70,8 @@ private:
     string getCurrentDate();
     const string getTypeString( int8_t type );
     const string getFuncString( int16_t func );
-
+    void nolocks_localtime(struct tm *tmp, time_t t, time_t tz, int dst) ;
+    int is_leap_year( int year );
 };
 
 #endif
