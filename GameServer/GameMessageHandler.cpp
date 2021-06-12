@@ -6,12 +6,12 @@ void GameMessageHandler::createBasicGameObjects( RoomManager &manager , list<Gam
 {
     //--- Create player object for new session ---//
     ReplicationHeader header( Action::CREATE , 0 , PlayerObject::CLASS_ID );
-    OutputByteStream obstream( TCP::MPS );
-    header.write( obstream );
-    InputByteStream ibstream( obstream );
-    obstream.close();
-    manager.m_replicationMgr.replicate( ibstream );
-    ibstream.close();
+    
+    m_obstream->flush();
+    header.write( *m_obstream );
+    *m_ibstream = *m_obstream;
+    manager.m_replicationMgr.replicate( *m_ibstream );
+    m_ibstream->flush();
 
     basicObjList = manager.getGameObjects();
 }
@@ -83,7 +83,6 @@ void GameMessageHandler::resJoinGame( void **inParams , void **outParams )
         catch( Not_Found_Ex e ) { }
     }
 
-    OutputByteStream resPacket( TCP::MPS );
     header.type = PACKET_TYPE::RES;
 
     if( result )
@@ -92,26 +91,24 @@ void GameMessageHandler::resJoinGame( void **inParams , void **outParams )
         createBasicGameObjects( *pTargetRoom , basicObjects );
 
         //--- Set response packet ---//
-        OutputByteStream payload( TCP::MPS );
+        m_obstream->flush();
 
         for( auto obj : basicObjects ) 
         {
-            pTargetRoom->m_replicationMgr.replicateCreate( payload , obj );
+            pTargetRoom->m_replicationMgr.replicateCreate( *m_obstream , obj );
         }
         header.func = FUNCTION_CODE::RES_JOIN_GAME_SUCCESS;
-        header.len = payload.getLength();
-        header.write( resPacket );
-        resPacket << payload;
+        header.len = m_obstream->getLength();
     }
     else
     {
         header.func = FUNCTION_CODE::RES_JOIN_GAME_FAIL;
         header.len = 0;
-        header.write( resPacket );
     }
-    pPacket->close();
-    *pPacket = InputByteStream( resPacket );
-    resPacket.close();
+
+    header.insert_front( *m_obstream );
+    *pPacket = *m_obstream;
+    m_obstream->flush();
 }
 
 void GameMessageHandler::replicate( void **inParams , void **outParams )

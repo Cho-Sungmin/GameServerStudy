@@ -371,6 +371,15 @@ void LOG::nolocks_localtime(struct tm *tmp, time_t t, time_t tz, int dst) {
 
  
 }
+void LOG::close()
+{
+    if( m_pInstance != nullptr )
+    {
+        LOG::getInstance()->printLOG( "DEBUG" , "LOG" , "~LOG()" );
+        delete m_pInstance;
+        m_pInstance = nullptr;
+    }
+}
 
 #if 0
 //segfault가 발생했을 때 호출될 함수
@@ -403,3 +412,5 @@ void LOG::sighandler(int sig)
     exit(1);
 }
 #endif
+
+

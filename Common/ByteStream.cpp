@@ -16,6 +16,11 @@ void ByteStream::close()
     capacity = 0;
 }
 
+void ByteStream::setCursor( int newCursor )
+{
+    cursor = newCursor;
+}
+
 void ByteStream::setCursor( BS_FLAG flag )
 { 
     switch (flag)

@@ -58,31 +58,26 @@ void UserDB::verifyUserInfo( void **inParams , void **outParams )
         getUserData( userInfo );
 
         //--- Set response packet ---//
-        OutputByteStream payload( TCP::MPS );
-        userInfo.write( payload );
+        m_obstream->flush();
+        userInfo.write( *m_obstream );
 
         header.type = PACKET_TYPE::RES;
-        header.len = payload.getLength();
-
-        OutputByteStream resPacket( Header::SIZE + header.len );
+        header.len = m_obstream->getLength();
 
         if( userInfo.getName() == "" )
         {
             header.func = FUNCTION_CODE::RES_VERIFY_FAIL;
             header.len = 0;
-            header.write( resPacket );
+            
         }
         else{
             header.func = FUNCTION_CODE::RES_VERIFY_SUCCESS;
-            header.write( resPacket );
-            resPacket << payload;
-
             m_pRedis->hmsetUserInfo( userInfo );
         }
-        
-        pPacket->close();
-        *pPacket = InputByteStream( resPacket );
-        resPacket.close();
+
+        header.insert_front( *m_obstream );
+        *pPacket = *m_obstream;
+        m_obstream->flush();
     }
     catch( Not_Found_Ex e )
     {

@@ -3,6 +3,7 @@
 
 #include <map>
 #include <functional>
+#include <memory>
 
 #include "MessageQueue.h"
 #include "Debug.h"
@@ -14,27 +15,28 @@ using namespace std;
 
 class MessageHandler {
 	MessageQueue &m_msgQ;
-	InputByteStream m_ibstream;
-	OutputByteStream m_obstream;
+protected:
+	unique_ptr<InputByteStream> m_ibstream;
+	unique_ptr<OutputByteStream> m_obstream;
 
 public:
 	//--- Constructor ---//
 	MessageHandler() = default;
 	MessageHandler( MessageQueue &queue )
-					: 	m_msgQ( queue ) , m_ibstream( TCP::MPS ) , m_obstream( TCP::MPS )
+					: 	m_msgQ( queue ) , m_ibstream(make_unique<InputByteStream>(TCP::MPS)) , m_obstream(make_unique<OutputByteStream>(TCP::MPS))
 	{
 		// init something //
 	}
 
-	~MessageHandler() { m_ibstream.close(); m_obstream.close(); }
+	~MessageHandler() {}
 
 	//--- Functions ---//
 	void acceptHandler( SessionManager &sessionMgr , int clntSocket , const string &welcomeMSG = "" );
 	void inputHandler( int clntSocket );
 	void invalidHandler();
 	void onHeartbeat();
-	void onRequest( InputByteStream &msg );
-	void onNotification( InputByteStream &msg );
+	void onRequest();
+	void onNotification();
 	
 	virtual void registerHandler( map<int , function<void(void**,void**)>> &h_map ); 
 };

@@ -7,17 +7,16 @@ bool MessageQueue::isEmpty()
 		return false;
 }
 
-void MessageQueue::enqueue( InputByteStream&& data )
+void MessageQueue::enqueue( InputByteStream *pData )
 {
-	queue.push( std::move( data ) );
+	queue.emplace( pData );
 }
 
-void MessageQueue::dequeue( InputByteStream& data )
+void MessageQueue::dequeue( unique_ptr<InputByteStream> &data )
 {
 	if( !isEmpty() ) {
 		data = std::move(queue.front());
 		queue.pop();
-		
 	}else
 		throw Empty_Ex();
 }

@@ -16,7 +16,7 @@ class LOG {
     fstream m_file;
     string m_fileName = "";
     mutex  m_mutex;
-    static LOG* m_pInstance;
+    static LOG *m_pInstance;
     
     LOG( const string &_fileName ) {
         m_fileName = _fileName;
@@ -36,13 +36,6 @@ public:
     {
         if( m_file.is_open() )
             m_file.close();
-
-        if( m_pInstance != nullptr )
-        {
-            LOG::getInstance()->printLOG( "DEBUG" , "LOG" , "~LOG()" );
-            delete m_pInstance;
-            m_pInstance = nullptr;
-        }
     }
 
     static LOG* getInstance( const string& fileName = "" )
@@ -60,7 +53,8 @@ public:
     void printLOG( InputByteStream& packet , int type );
     void writeLOG( InputByteStream& packet , int type );
 
-    static void sighandler(int sig);
+    void close();
+    //static void sighandler(int sig);
 
 private:
     string getHeaderString( const Header& header );
@@ -72,6 +66,7 @@ private:
     const string getFuncString( int16_t func );
     void nolocks_localtime(struct tm *tmp, time_t t, time_t tz, int dst) ;
     int is_leap_year( int year );
+    
 };
 
 #endif

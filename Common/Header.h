@@ -82,20 +82,34 @@ typedef struct header {
 
 	//--- Stream functions ---//
 
-	void read( InputByteStream& stream )
+	void read( InputByteStream &ibstream )
 	{
-		stream.read( type );
-		stream.read( func );
-		stream.read( len );
-		stream.read( sessionId );
+		ibstream.read( type );
+		ibstream.read( func );
+		ibstream.read( len );
+		ibstream.read( sessionId );
 	}
 
-	void write( OutputByteStream& stream )
+	void write( OutputByteStream &obstream )
 	{
-		stream.write( type );
-		stream.write( func );
-		stream.write( len );
-		stream.write( sessionId );
+		obstream.write( type );
+		obstream.write( func );
+		obstream.write( len );
+		obstream.write( sessionId );
+	}
+
+	void insert_front( OutputByteStream &obstream )
+	{
+		obstream >> SIZE;
+		int cur = obstream.getLength();
+		obstream.flush();
+
+		obstream.write( type );
+		obstream.write( func );
+		obstream.write( len );
+		obstream.write( sessionId );
+
+		obstream.setCursor( cur );
 	}
 
 	//--- Operator ---//

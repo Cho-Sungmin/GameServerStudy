@@ -48,7 +48,6 @@ void ReplicationManager::replicate( InputByteStream &ibstream )
         {
             GameObject *pGameObj = ObjectCreationRegistry::getInstance()->createObject( header.m_classId );
             m_pGameObjectMgr->addGameObject( pGameObj );
-            pGameObj->read( ibstream );
             break;
         }   
         case Action::UPDATE :

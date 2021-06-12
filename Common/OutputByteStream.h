@@ -1,10 +1,12 @@
 #ifndef OUTPUT_BYTE_STREAM_H
 #define OUTPUT_BYTE_STREAM_H
 
+#include <cstring>
 #include <string>
 #include <type_traits>
-
 #include "ByteStream.h"
+
+#include <iostream>
 
 class InputByteStream;
 
@@ -20,6 +22,8 @@ public:
 template <typename T>
     void write( T in );
 
+    friend class InputByteStream;
+
     OutputByteStream &operator<<( InputByteStream &ibstream );
 
     OutputByteStream &operator=( const OutputByteStream &obstream )
@@ -34,9 +38,21 @@ template <typename T>
     OutputByteStream &operator<<( OutputByteStream &obstream )
     {
         write( obstream.getBuffer() , obstream.getLength() );
-        obstream.close();
 
         return *this;
+    }
+
+    void operator>>( int size )
+    {
+        int newSize = cursor + size;
+
+        if( newSize > capacity )
+        {
+            reallocBuffer( newSize );
+        }
+
+        memmove( buffer + size , buffer , cursor );
+        cursor = newSize;
     }
 
 };

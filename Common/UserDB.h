@@ -4,18 +4,24 @@
 #include <functional>
 #include "MySQL.h"
 #include "UserRedis.h"
+#include "TCP.h"
 
 
 using namespace std;
 
 class UserDB : public MySQL {
     bool m_isConn = false;
+    unique_ptr<OutputByteStream> m_obstream;
 
 public:
     UserRedis *m_pRedis;
 
     UserDB() = delete;
-    UserDB( UserRedis *_redis ) : m_pRedis( _redis ){}
+    UserDB( UserRedis *_redis ) 
+    : m_pRedis( _redis ) , m_obstream( make_unique<OutputByteStream>(TCP::MPS) )
+    {
+
+    }
 
     ~UserDB()
     {

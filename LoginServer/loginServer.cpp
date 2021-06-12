@@ -51,8 +51,7 @@ int main()
 		
 	}
 
-	if( pLog != nullptr)
-		delete(pLog);
+	pLog->close();
 
 	return 0;
 }

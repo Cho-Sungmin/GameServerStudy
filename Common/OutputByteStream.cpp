@@ -1,6 +1,5 @@
 #include "OutputByteStream.h"
 #include "InputByteStream.h"
-#include "string.h"
 #include "Debug.h"
 #include "Exception.h"
 

@@ -44,7 +44,7 @@ void InputByteStream::reUse()
 void InputByteStream::flush()
 { setCursor(BS_END); }
 
-/*
+
 void InputByteStream::reallocBuffer( int newSize )
 {
     char *tmp = (char*) malloc( newSize );
@@ -61,7 +61,7 @@ void InputByteStream::reallocBuffer( int newSize )
     buffer = tmp;
     capacity = newSize;
 }
-*/
+
 void InputByteStream::read( void* out , int size )
 {
     if( getRemainLength() > 0 )
@@ -90,20 +90,17 @@ void InputByteStream::read( string& out )
     out = str;
 }
 
-InputByteStream &InputByteStream::operator<<( OutputByteStream &obstream )
+InputByteStream &InputByteStream::operator=( OutputByteStream &obstream )
 {
-    reUse();
+    cursor = 0;
+    
     int newSize = obstream.getLength();
-
-    if( capacity < newSize )
+    if( newSize > capacity )
     {
-        //reallocBuffer( newSize );
+        reallocBuffer( newSize );
     }
-
     capacity = newSize;
     memcpy( buffer , obstream.getBuffer() , capacity );
-
-    obstream.flush();
 
     return *this;
 }

@@ -45,7 +45,7 @@ void GameServer::handler( int event , int clntSocket )
 		catch( TCP::NoData_Ex e )
 		{
 			m_sessionMgr.expired( clntSocket );
-			for( auto room : m_roomList )
+			for( auto &room : m_roomList )
 				room.updateSessions();
 			
 			farewell( clntSocket );
@@ -54,7 +54,7 @@ void GameServer::handler( int event , int clntSocket )
 		{
 			//--- Set free ---//
 			m_sessionMgr.expired( clntSocket );
-			for( auto room : m_roomList )
+			for( auto &room : m_roomList )
 				room.updateSessions();
 			
 			farewell( clntSocket );

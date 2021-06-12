@@ -28,7 +28,7 @@ void LoginServer::handler( int event , int clntSocket )
 
     case ACCEPT :	// Connection
 
-        m_msgHandler.acceptHandler( m_sessionMgr , clntSocket , string( "GameServer" ) );
+        m_msgHandler.acceptHandler( m_sessionMgr , clntSocket , string( "LoginServer" ) );
         m_msgProc.processMSG();
         break;
 

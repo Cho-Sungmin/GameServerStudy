@@ -2,6 +2,7 @@
 #define MESSAGE_PROCESSOR_H
 
 #include <map>
+#include <memory>
 #include <functional>
 
 #include "MessageQueue.h"
@@ -12,6 +13,7 @@ using namespace std;
 
 class MessageProcessor {
 
+	unique_ptr<InputByteStream> m_ibstream;
 	MessageQueue &m_msgQ;
 	map<int , function<void(void**,void**)>> m_hMap;
 	
@@ -31,16 +33,15 @@ public:
 	}
 	void processMSG( void **inParams=nullptr , void **outParams=nullptr )
 	{
-		InputByteStream msg;
 		Header header;
 
-		void *outparameters[] = { &msg };
-		void **inparameters = inParams;
+		try {	
+			m_msgQ.dequeue( m_ibstream );
+			header.read( *m_ibstream );
+			m_ibstream->reUse();
 
-		try {
-			m_msgQ.dequeue( msg );
-			header.read( msg );
-			msg.reUse();
+			void *outparameters[] = { m_ibstream.get() };
+			void **inparameters = inParams;
 
 			auto itr = m_hMap.find( header.func );
 			if( itr != m_hMap.end() )
@@ -48,20 +49,20 @@ public:
 				itr->second( inparameters , outparameters );
 			}
 
-			if( msg.getRemainLength() > 0 )
+			if( m_ibstream->getRemainLength() > 0 )
 			{
-				TCP::send_packet( header.sessionId , msg );
-				LOG::getInstance()->writeLOG( msg , LOG::TYPE::SEND );		
+				TCP::send_packet( header.sessionId , *m_ibstream );
+				LOG::getInstance()->writeLOG( *m_ibstream , LOG::TYPE::SEND );		
 			}
-			msg.close();
+			m_ibstream->reUse();
 		}
 		catch( Empty_Ex e ) {
 		}
 		catch( TCP::Transmission_Ex e ) {
-			msg.close();
+			m_ibstream->flush();
 		}
 		catch( TCP::Connection_Ex e ) {
-			msg.close();
+			m_ibstream->flush();
 			throw e;
 		}
 

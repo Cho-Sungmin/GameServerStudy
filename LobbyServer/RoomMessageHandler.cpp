@@ -10,8 +10,6 @@ void RoomMessageHandler::resEnterRoom( void **inParams , void **outParams )
     InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( outParams[0] );	
     Header header; header.read( *pPacket );
 
-    OutputByteStream resPacket( TCP::MPS );
-
     try{
         Session *pSession = pSessionMgr->getSessionById( header.sessionId );     // To update user information in the session, if it's verified user.
 
@@ -23,11 +21,11 @@ void RoomMessageHandler::resEnterRoom( void **inParams , void **outParams )
         UserRedis::getInstance()->hmgetUserInfo( userInfo );
 
         //--- Set response packet ---//
-        OutputByteStream payload( TCP::MPS );
-        userInfo.write( payload );
+        m_obstream->flush();
+        userInfo.write( *m_obstream );
 
         header.type = PACKET_TYPE::RES;
-        header.len = payload.getLength();
+        header.len = m_obstream->getLength();
         
         //--- CASE : The request is VALID ---//
         //--- Update session data ---//
@@ -35,34 +33,29 @@ void RoomMessageHandler::resEnterRoom( void **inParams , void **outParams )
         pSession->m_userInfo.setPw( "" );
 
         header.func = FUNCTION_CODE::RES_ENTER_LOBBY_SUCCESS;
-        header.write( resPacket );
-        resPacket << payload;   
     }
     catch( Not_Found_Ex e )
     {
+        header.len = 0;
     }
     catch( UserRedisException e )
     {
         //--- CASE : The request is INVALID ---//
         header.func = FUNCTION_CODE::RES_ENTER_LOBBY_FAIL;
         header.len= 0;
-        header.write( resPacket );
     }
 
-    pPacket->close();
-    *pPacket = InputByteStream( resPacket );
-    resPacket.close();
+    header.insert_front( *m_obstream );
+    *pPacket = *m_obstream;
+    m_obstream->flush();
 }
 
 void RoomMessageHandler::resRoomList( void **inParams , void **outParams )
 {
     InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( outParams[0] );
-    //SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( rParam );
 
     Header header; header.read( *pPacket );
     header.type = PACKET_TYPE::RES;
-
-    OutputByteStream resPacket( TCP::MPS );
 
     //--- Result from redis LRANGE command ---//
     try{
@@ -70,18 +63,15 @@ void RoomMessageHandler::resRoomList( void **inParams , void **outParams )
     
         //--- CASE : The request is VALID ---//
         //--- Set response packet ---//
-        OutputByteStream payload( TCP::MPS );
+
+        m_obstream->flush();
 
         for( auto room : result )
         {
-            room.write( payload );
+            room.write( *m_obstream );
         }
-        header.len = payload.getLength();
+        header.len = m_obstream->getLength();
         header.func = FUNCTION_CODE::RES_ROOM_LIST_SUCCESS;
-
-        header.write( resPacket );
-        resPacket << payload;
-
     }
     catch( UserRedisException e )
     { 
@@ -90,10 +80,9 @@ void RoomMessageHandler::resRoomList( void **inParams , void **outParams )
         header.len = 0;
     }
 
-    header.write( resPacket );
-    pPacket->close();
-    *pPacket = InputByteStream( resPacket );
-    resPacket.close();
+    header.insert_front( *m_obstream );
+    *pPacket = *m_obstream;
+    m_obstream->flush();
 }
 
 void RoomMessageHandler::resMakeRoom( void **inParams , void **outParams )
@@ -103,8 +92,6 @@ void RoomMessageHandler::resMakeRoom( void **inParams , void **outParams )
     header.type = PACKET_TYPE::RES;
     Room room; room.read( *pPacket );
 
-    OutputByteStream resPacket( TCP::MPS );
-
     try{
         UserRedis *pInstance = UserRedis::getInstance();
         pInstance->hmsetNewRoom( room );
@@ -112,29 +99,26 @@ void RoomMessageHandler::resMakeRoom( void **inParams , void **outParams )
         pInstance->lpushRoomList( room );
 
         //--- Set response packet ---//
-        OutputByteStream payload( TCP::MPS );
-        room.write( payload );
+        m_obstream->flush();
+        room.write( *m_obstream );
 
         //--- CASE : The request is valid ---//
         //--- Add new room in the list ---//
         //pRoomList->emplace_back(room);
 
         header.func = FUNCTION_CODE::RES_MAKE_ROOM_SUCCESS;
-        header.len = payload.getLength();
-        header.write( resPacket );
-        resPacket << payload;
+        header.len = m_obstream->getLength();
     }
     catch( UserRedisException e )
     {
         //--- CASE : The request is invalid ---//
         header.func = FUNCTION_CODE::RES_MAKE_ROOM_FAIL;
         header.len = 0;
-        header.write( resPacket );
     }
 
-    pPacket->close();
-    *pPacket = InputByteStream( resPacket );
-    resPacket.close();
+    header.insert_front( *m_obstream );
+    *pPacket = *m_obstream;
+    m_obstream->flush();
 
 }
 

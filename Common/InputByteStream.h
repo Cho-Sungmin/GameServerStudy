@@ -17,14 +17,14 @@ public:
     int getRemainLength();
     void reUse();
     void flush();
-    //void reallocBuffer( int newSize );
+    void reallocBuffer( int newSize );
     void read( void* out , int size );
 template <typename T>
     void read( T& out );
 
     friend class OutputByteStream;
 
-    InputByteStream &operator<<( OutputByteStream &obstream );
+    InputByteStream &operator=( OutputByteStream &ibstream );
 
     InputByteStream &operator=( InputByteStream &ibstream )
     {
