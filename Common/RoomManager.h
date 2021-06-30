@@ -38,13 +38,41 @@ public:
         m_sessionMgr.addSession( pNewSession );
     }
 
-    void updateSessions()
+    void deleteSession( int sessionId )
     {
-        m_sessionMgr.deleteSession( nullptr );
+        try{
+            Session *pSession = m_sessionMgr.getSessionById( sessionId );
+            m_sessionMgr.deleteSession( pSession );
+        }
+        catch( Not_Found_Ex e )
+        {
+            cout << "deleteSession" << endl;
+        }
+    }
+
+    const list<Session*> &getSessionList()
+    {
+        return m_sessionMgr.getSessionList();
     }
 
     list<GameObject*> getGameObjects()
     { return m_gameObjectMgr.getGameObjectAll(); }
+
+    GameObject *findGameObject( uint32_t objectId )
+    {
+        return m_gameObjectMgr.getGameObject( objectId );
+    }
+
+    void displaySessionList()
+    {
+        displayRoomInfo();
+        m_sessionMgr.displaySessionList();
+    }
+
+    void displayRoomInfo()
+    {
+        cout << m_roomInfo << endl;
+    }
 };
 
 #endif

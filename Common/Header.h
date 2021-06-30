@@ -52,6 +52,8 @@ enum FUNCTION_CODE : uint16_t {
 	//--- Others ---//
 	NOTI_WELCOME,
 	NOTI_REPLICATION,
+	NOTI_BYE,
+	CHAT,
 	SUCCESS,
 	FAIL,
 	REJECT,
@@ -114,7 +116,7 @@ typedef struct header {
 
 	//--- Operator ---//
 
-	struct header& operator=( const struct header& h ){
+	struct header &operator=( const struct header &h ){
 		type = h.type;
 		func = h.func;
 		len	= h.len;
@@ -123,7 +125,7 @@ typedef struct header {
 		return *this;
 	}
 
-	friend std::ostream& operator<<( std::ostream& os , const struct header& h ) {
+	friend std::ostream &operator<<( std::ostream &os , const struct header &h ) {
 		return os << "[" << to_string( h.type )<< "] [" << to_string( h.func ) << "] [" << to_string( h.len ) << "]  [" << to_string( h.sessionId ) << "]";
 	}
 

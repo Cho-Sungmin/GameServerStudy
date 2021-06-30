@@ -24,22 +24,31 @@ list<GameObject*> GameObjectManager::getGameObjectAll()
 {
     list<GameObject*> results;
 
-    for( auto raw : m_objectTable )
+    for( auto row : m_objectTable )
     {
-        results.push_back( raw.second );
+        results.push_back( row.second );
     }
     return results;
 }
 
-void GameObjectManager::addGameObject( GameObject *pGameObject )
+uint32_t GameObjectManager::addGameObject( GameObject *pGameObject )
 {
+    uint32_t objectId = m_nextObjectId;
+
     if( pGameObject == nullptr )
-        return ;
+        return 0;
     
     m_objectTable[ m_nextObjectId ] = pGameObject;
     m_idTable[ pGameObject ] = m_nextObjectId;
 
     m_nextObjectId++;
+
+    while( m_objectTable.find( m_nextObjectId ) != m_objectTable.end() )
+    {
+        m_nextObjectId++;
+    }
+
+    return objectId;
 }
 
 void GameObjectManager::removeGameObject( GameObject *pGameObject )
@@ -50,9 +59,14 @@ void GameObjectManager::removeGameObject( GameObject *pGameObject )
     auto itr = m_idTable.find( pGameObject );
     if( itr != m_idTable.end() )
     {
+        int key = itr->second;
+
+        m_objectTable.erase( key );
+        m_idTable.erase( itr );  
+
         if( pGameObject != nullptr )
             delete pGameObject;
-        m_objectTable.erase( itr->second );
-        itr = m_idTable.erase( itr );  
+        
+        m_nextObjectId = key;
     }
 }

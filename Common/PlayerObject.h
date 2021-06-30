@@ -26,6 +26,7 @@ typedef struct Vector2 {
 class PlayerObject : public GameObject {
     Position position;
     Vector2 velocity;
+    int direction;
 
     PlayerObject() = default;
     virtual ~PlayerObject() = default;
@@ -38,11 +39,14 @@ public:
     {
         position.read( ibstream );
         velocity.read( ibstream );
+        ibstream.read( direction );
     }
+    
     virtual void write( OutputByteStream &obstream )
     {
         position.write( obstream );
         velocity.write( obstream );
+        obstream.write( direction );
     }
 };
 

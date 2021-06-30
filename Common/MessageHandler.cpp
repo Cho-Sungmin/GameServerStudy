@@ -2,6 +2,8 @@
 
 void MessageHandler::acceptHandler( SessionManager &sessionMgr , int clntSocket , const string &welcomeMSG )
 {
+    m_obstream->flush();
+
     try {
         //--- Set a new session ---//
         sessionMgr.newSession( clntSocket );
@@ -16,10 +18,12 @@ void MessageHandler::acceptHandler( SessionManager &sessionMgr , int clntSocket 
 
         m_msgQ.enqueue( new InputByteStream( *m_obstream ) );
 
-        m_obstream->flush();
+        
     }
     catch( Not_Found_Ex e )
     {}
+
+    m_obstream->flush();
 }
 
 void MessageHandler::inputHandler( int clntSocket )
@@ -50,11 +54,13 @@ void MessageHandler::inputHandler( int clntSocket )
             case PACKET_TYPE::NOTI : //--- TYPE : NOTI ---//
                 onNotification();
                 break;
+            case PACKET_TYPE::MSG : //--- TYPE : MSG ---//
+                onChatMessage();
             default :
                 break;
         }
 
-        m_ibstream->flush();
+        m_ibstream->reUse();
     }
     catch( TCP::Connection_Ex e )
     {
@@ -66,7 +72,7 @@ void MessageHandler::inputHandler( int clntSocket )
         m_obstream->flush();
         throw e;
     }
-    
+    m_obstream->flush();
 }
 void MessageHandler::invalidHandler()
 {
@@ -78,10 +84,29 @@ void MessageHandler::onNotification()
     m_msgQ.enqueue( new InputByteStream( *m_obstream ) );
 }
 
+void MessageHandler::onChatMessage()
+{
+    m_msgQ.enqueue( new InputByteStream( *m_obstream ) );
+}
+
 void MessageHandler::onRequest()
 {
     m_msgQ.enqueue( new InputByteStream( *m_obstream ) );
 }
 
 void MessageHandler::onHeartbeat(){}
-void MessageHandler::registerHandler( map<int , function<void(void**,void**)>> &h_map ) {}
+
+void MessageHandler::bye( void **in , void **out )
+{
+   throw TCP::Connection_Ex();
+}
+
+void MessageHandler::registerHandler( map<int , function<void(void**,void**)>> &h_map ) {
+    h_map.insert( make_pair( (int)FUNCTION_CODE::NOTI_BYE , 
+                                    [this](void **in , void **out) 
+                                    { 
+                                        this->bye( in , out ); 
+                                    } 
+                            ) 
+                );
+}

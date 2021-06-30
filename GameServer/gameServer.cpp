@@ -42,8 +42,7 @@ int main()
 				clntSocket = result.fd;
 				server.handler( result.event , clntSocket );
 				
-				resultList.pop_front();
-			
+				resultList.pop_front();	
 			}	
 		} 
 		catch( Select_Ex e ) {

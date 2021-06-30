@@ -44,7 +44,6 @@ void InputByteStream::reUse()
 void InputByteStream::flush()
 { setCursor(BS_END); }
 
-
 void InputByteStream::reallocBuffer( int newSize )
 {
     char *tmp = (char*) malloc( newSize );

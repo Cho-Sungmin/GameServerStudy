@@ -9,14 +9,17 @@
 class ReplicationTimer : public Timer {
     int	m_fd = -1;
 	RoomManager &m_roomMgr;
+	InputByteStream m_ibstream;
+	OutputByteStream m_obstream;
+
 public:
 	static void handler( int signo , siginfo_t *pInfo , void *uc );
 
     //--- Constructor ---//
 	ReplicationTimer() = default; 
 
-	ReplicationTimer( RoomManager &roomMgr , int _fd , int sec=0 , int nsec=100000000 )    // 100ms
-			:  Timer(sec , nsec) , m_fd(_fd) , m_roomMgr(roomMgr)
+	ReplicationTimer( RoomManager &roomMgr , int _fd , int sec=0 , int nsec=200000000 )    // 200ms
+			:  Timer(sec , nsec) , m_fd(_fd) , m_roomMgr(roomMgr) , m_ibstream( TCP::MPS ) , m_obstream( TCP::MPS )
 	{
 		struct sigaction action = {0};
 		
@@ -43,31 +46,30 @@ void ReplicationTimer::handler( int signo , siginfo_t *pInfo , void *uc )
 	ReplicationTimer *pRepTimer = reinterpret_cast<ReplicationTimer*>( pInfo->si_value.sival_ptr );
 
 	RoomManager &roomMgr = pRepTimer->m_roomMgr;
+	InputByteStream &ibstream = pRepTimer->m_ibstream;
+	OutputByteStream &obstream = pRepTimer->m_obstream;
 	list<GameObject*> gameObjects = roomMgr.getGameObjects();
 	ReplicationManager &repMgr = roomMgr.m_replicationMgr;
 
 	for( auto obj : gameObjects )
 	{
-		OutputByteStream payload( TCP::MPS );
-		repMgr.replicateUpdate( payload , obj );
+		repMgr.replicateUpdate( obstream , obj );
 
 		Header header;
 		header.type = PACKET_TYPE::REQ;
 		header.func = FUNCTION_CODE::REQ_REPLICATION;
-		header.len = payload.getLength();
+		header.len = obstream.getLength();
 		header.sessionId = pRepTimer->m_fd;
 
-		OutputByteStream packet( TCP::MPS );
-		header.write( packet );
-		packet << payload;
+		header.insert_front( obstream );
 
-		InputByteStream ibstream( packet );
-		packet.close();
+		ibstream = obstream;
 		
 		TCP::send_packet( pRepTimer->m_fd , ibstream );
 		LOG::getInstance()->writeLOG( ibstream , LOG::TYPE::SEND );
 	
-		ibstream.close();
+		obstream.flush();
+		ibstream.reUse();
 	}
 }
 #endif

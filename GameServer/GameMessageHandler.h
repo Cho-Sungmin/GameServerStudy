@@ -15,6 +15,7 @@ public:
 
     void resJoinGame( void **inParams , void **outParams );
     void replicate( void **inParams , void **outParams );
+    void chatBroadcast( void **inParams , void **outParams );
     virtual void registerHandler( map<int , function<void(void**,void**)>> &h_map );
 private:
     void createBasicGameObjects( RoomManager &manager , list<GameObject*> &basicObjList );

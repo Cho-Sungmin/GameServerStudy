@@ -34,6 +34,11 @@ struct Room {
         obstream.write( title );
     }
 
+    friend ostream &operator<<( ostream &os , const Room &room )
+    {
+        return cout << '[' << room.roomId << "][" << room.title << ']';
+    }
+
 #if false
     void parseRoomInfo( Room &target , const char data[] , const char delim )
     {

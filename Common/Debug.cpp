@@ -254,6 +254,12 @@ const string LOG::getFuncString( int16_t func )
     case FUNCTION_CODE::NOTI_REPLICATION :
         type_str = "NOTI_REPLICATION";
         break;
+    case FUNCTION_CODE::NOTI_BYE :
+        type_str = "NOTI_BYE";
+        break;
+    case FUNCTION_CODE::CHAT :
+        type_str = "CHAT";
+        break;
     case FUNCTION_CODE::SUCCESS :
         type_str = "SUCCESS";
         break;

@@ -15,11 +15,9 @@ protected:
     char* buffer = nullptr;
 
 public:
-
     ~ByteStream()
     {
-        if( buffer != nullptr )
-            free( buffer );
+        close();
     }
     void setCursor( BS_FLAG flag );
     void setCursor( int cursor );

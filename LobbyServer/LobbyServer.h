@@ -13,7 +13,7 @@ class LobbyServer : public SelectIOServer {
     UserRedis *m_pRedis = UserRedis::getInstance();
 
     SessionManager m_sessionMgr;
-	list<RoomManager> m_roomList;
+	//list<RoomManager> m_roomList;
 
     RoomMessageHandler m_msgHandler;
 	MessageProcessor m_msgProc;

@@ -6,15 +6,15 @@
 
 void RoomMessageHandler::resEnterRoom( void **inParams , void **outParams )
 {
-    SessionManager *pSessionMgr = reinterpret_cast<SessionManager*>( inParams[0] );
-    InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( outParams[0] );	
+    SessionManager *pSessionMgr = static_cast<SessionManager*>( inParams[0] );
+    InputByteStream *pPacket = static_cast<InputByteStream*>( outParams[0] );	
     Header header; header.read( *pPacket );
 
     try{
         Session *pSession = pSessionMgr->getSessionById( header.sessionId );     // To update user information in the session, if it's verified user.
 
         //--- Extract userInfo from message ---//
-        UserInfo userInfo;      // User information from REQ_MSG.
+        UserInfo userInfo;
         userInfo.read( *pPacket );
 
         //--- Result from redis HMGET command ---//
@@ -52,7 +52,7 @@ void RoomMessageHandler::resEnterRoom( void **inParams , void **outParams )
 
 void RoomMessageHandler::resRoomList( void **inParams , void **outParams )
 {
-    InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( outParams[0] );
+    InputByteStream *pPacket = static_cast<InputByteStream*>( outParams[0] );
 
     Header header; header.read( *pPacket );
     header.type = PACKET_TYPE::RES;
@@ -87,7 +87,7 @@ void RoomMessageHandler::resRoomList( void **inParams , void **outParams )
 
 void RoomMessageHandler::resMakeRoom( void **inParams , void **outParams )
 {
-    InputByteStream *pPacket = reinterpret_cast<InputByteStream*>( outParams[0] );	
+    InputByteStream *pPacket = static_cast<InputByteStream*>( outParams[0] );
     Header header; header.read( *pPacket );
     header.type = PACKET_TYPE::RES;
     Room room; room.read( *pPacket );

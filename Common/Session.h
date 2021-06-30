@@ -50,6 +50,13 @@ public:
 	int getSessionId() const;	
 	//--- Operator ---//
 	void operator=( const Session &session );
+
+	friend ostream &operator<<( ostream &io , const Session &session )
+	{
+		return cout << '[' << to_string( session.getSessionId() ) << ']';
+	}
 };
+
+
 
 #endif

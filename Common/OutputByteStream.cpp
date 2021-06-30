@@ -33,7 +33,7 @@ void OutputByteStream::reallocBuffer( int newSize )
         throw MemoryAlloc_Ex();
 
     memcpy( tmp , buffer , getLength() );
-    LOG::getInstance()->printLOG( "DEBUG" , "OutputByteStream" , "reallocBuffer()" );
+    
     free( buffer );
     buffer = tmp;
 }
@@ -54,8 +54,8 @@ void OutputByteStream::write( std::string in )
 
 void OutputByteStream::write( const void* in , int size )
 {
-    if( size > capacity - getLength() )
-        reallocBuffer( std::max( capacity*2 , size ) );
+    if( size > capacity - cursor )
+        reallocBuffer( std::max( capacity*2 , size + cursor ) );
         
     memcpy( buffer + cursor , in , size );
     cursor += size;

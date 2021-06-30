@@ -37,6 +37,9 @@ public:
 	void onHeartbeat();
 	void onRequest();
 	void onNotification();
+	void onChatMessage();
+
+	void bye( void **in , void **out );
 	
 	virtual void registerHandler( map<int , function<void(void**,void**)>> &h_map ); 
 };

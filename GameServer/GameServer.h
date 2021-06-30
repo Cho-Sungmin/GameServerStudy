@@ -13,7 +13,7 @@ class GameServer : public SelectIOServer {
     UserRedis *m_pRedis = UserRedis::getInstance();
 	UserDB m_userDB;
 
-    SessionManager m_sessionMgr;    // for sessions that are not in game
+    SessionManager m_sessionMgr;    // 플레이 중인 전체 사용자 관리
 	list<RoomManager> m_roomList;
 
     MessageQueue m_msgQ;

@@ -31,6 +31,7 @@ public:
 	{
 		obj.registerHandler( m_hMap );	
 	}
+	
 	void processMSG( void **inParams=nullptr , void **outParams=nullptr )
 	{
 		Header header;
@@ -49,6 +50,7 @@ public:
 				itr->second( inparameters , outparameters );
 			}
 
+			//--- 요청에 대한 응답이 있는 경우 ---//
 			if( m_ibstream->getRemainLength() > 0 )
 			{
 				TCP::send_packet( header.sessionId , *m_ibstream );
@@ -59,10 +61,10 @@ public:
 		catch( Empty_Ex e ) {
 		}
 		catch( TCP::Transmission_Ex e ) {
-			m_ibstream->flush();
+			m_ibstream->reUse();
 		}
 		catch( TCP::Connection_Ex e ) {
-			m_ibstream->flush();
+			m_ibstream->reUse();
 			throw e;
 		}
 

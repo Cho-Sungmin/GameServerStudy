@@ -1,23 +1,21 @@
 #include "SessionManager.h"
 #include "Session.h"
 #include "Debug.h"
+#include <sstream>
 
 //--- Functions ---//
 Session *SessionManager::getSessionById ( int session_id )
 {
     auto itr = find_if( m_sessionList.begin() , m_sessionList.end() , 
                     [ &session_id ]( const Session* pSession ) { 
-                        if( pSession != nullptr ) 
-                            return pSession->getSessionId() == session_id; 
-                        else
-                            return false;
+                        return pSession->getSessionId() == session_id; 
                     } );
 
     if( itr == m_sessionList.end() )
     {
         Not_Found_Ex ex;
-        LOG::getInstance()->printLOG( "EXCEPT" , "WARN" , ex.what() );
-		LOG::getInstance()->writeLOG( "EXCEPT" , "WARN" , ex.what() );
+        //LOG::getInstance()->printLOG( "EXCEPT" , "WARN" , ex.what() );
+		//LOG::getInstance()->writeLOG( "EXCEPT" , "WARN" , ex.what() );
         throw ex;
     }
     else
@@ -36,6 +34,7 @@ void SessionManager::validate( int sessionId )
         pSession->startTimers();
     }catch( Not_Found_Ex e )
     {
+        cout << "validate" << endl;
     }
 }
 
@@ -53,6 +52,7 @@ void SessionManager::expired( int sessionId )
         }
     }catch( Not_Found_Ex e )
     {
+        cout << "expired" << endl;
     }
 }
 
@@ -64,7 +64,7 @@ void SessionManager::expireAll()
     {
         Session *pSession = m_sessionList.front();
         if( pSession != nullptr ){
-            delete( pSession );
+            delete pSession;
         }
         m_sessionList.pop_front();
     }
@@ -112,4 +112,18 @@ bool SessionManager::validationCheck( const Session *pSession ) const
         return false;
     else
         return true;
+}
+
+void SessionManager::displaySessionList() const
+{
+    int i = 1;
+
+    cout << "< Session List >" << endl;
+
+    for( auto pSession : m_sessionList )
+    {
+        cout << '[' << to_string(i) << "] " << *pSession << endl;
+        ++i;
+    }
+
 }

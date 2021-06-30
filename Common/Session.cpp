@@ -26,3 +26,4 @@ void Session::operator=( const Session &session )
 bool operator==( const Session &session , const Session &_session )
 { return session.getSessionId() == _session.getSessionId(); }
 
+

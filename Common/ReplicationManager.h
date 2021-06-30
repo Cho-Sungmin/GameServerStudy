@@ -27,7 +27,7 @@ public:
     void replicateDestroy( OutputByteStream &obstream , GameObject *pObject );
 
     //--- From hosts ---//
-    void replicate( InputByteStream &ibstream );
+    uint32_t replicate( InputByteStream &ibstream );
 };
 
 

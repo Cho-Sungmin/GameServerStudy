@@ -6,8 +6,8 @@ ObjectCreationRegistry *ObjectCreationRegistry::m_pInstance;
 //--- To hosts ---//
 void ReplicationManager::replicateCreate( OutputByteStream &obstream , GameObject *pObject )
 {
-    uint objectId = m_pGameObjectMgr->getObjectId( pObject );
-    uint classId = pObject->getClassId();
+    uint32_t objectId = m_pGameObjectMgr->getObjectId( pObject );
+    uint32_t classId = pObject->getClassId();
 
     if( objectId == 0 )
     {
@@ -34,30 +34,32 @@ void ReplicationManager::replicateDestroy( OutputByteStream &obstream , GameObje
     ReplicationHeader header( Action::DESTROY , m_pGameObjectMgr->getObjectId( pObject ) );
 
     header.write( obstream );
-    pObject->write( obstream );
+    //pObject->write( obstream );
 }
 
 //--- From hosts ---//
-void ReplicationManager::replicate( InputByteStream &ibstream )
+uint32_t ReplicationManager::replicate( InputByteStream &ibstream )
 {
     ReplicationHeader header; header.read( ibstream );
+    uint32_t objectId = 0;
 
     switch( header.m_action )
     {
         case Action::CREATE :
         {
             GameObject *pGameObj = ObjectCreationRegistry::getInstance()->createObject( header.m_classId );
-            m_pGameObjectMgr->addGameObject( pGameObj );
+            objectId = m_pGameObjectMgr->addGameObject( pGameObj );
             break;
         }   
         case Action::UPDATE :
         {
-            GameObject *pGameObj = m_pGameObjectMgr->getGameObject( header.m_objectId );
+            objectId = header.m_objectId;
+            GameObject *pGameObj = m_pGameObjectMgr->getGameObject( objectId );
 
             if( pGameObj == nullptr )
             {
                 pGameObj = ObjectCreationRegistry::getInstance()->createObject( header.m_classId );
-                m_pGameObjectMgr->addGameObject( pGameObj );
+                objectId = m_pGameObjectMgr->addGameObject( pGameObj );
             }
             pGameObj->read( ibstream );
 
@@ -65,11 +67,13 @@ void ReplicationManager::replicate( InputByteStream &ibstream )
         }    
         case Action::DESTROY :
         {
-            GameObject *pGameObj = m_pGameObjectMgr->getGameObject( header.m_objectId );
+            objectId = header.m_objectId;
+            GameObject *pGameObj = m_pGameObjectMgr->getGameObject( objectId );
 
             m_pGameObjectMgr->removeGameObject( pGameObj );
             break;
         }     
-
     }
+
+    return objectId;
 }

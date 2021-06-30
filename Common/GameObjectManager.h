@@ -30,7 +30,7 @@ public:
     uint32_t getObjectId( GameObject *pGameObject );
     GameObject *getGameObject( uint32_t objectId );
     list<GameObject*> getGameObjectAll();
-    void addGameObject( GameObject *pGameObject );
+    uint32_t addGameObject( GameObject *pGameObject );
     void removeGameObject( GameObject *pGameObject );
 
 };

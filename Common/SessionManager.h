@@ -16,7 +16,7 @@ public:
 	SessionManager() = default;
 
 	//--- Functions ---//
-	Session *getSessionById ( int session_id );
+	Session *getSessionById( int session_id );
 	const std::list<Session*> &getSessionList();
 	void validate( int sessionId );	
 	void expired( int sessionId );
@@ -26,6 +26,7 @@ public:
 	void addSession( Session *pSession );
 	void deleteSession( Session *pSession );
 	bool validationCheck( const Session *pSession ) const;
+	void displaySessionList() const;
 };
 
 

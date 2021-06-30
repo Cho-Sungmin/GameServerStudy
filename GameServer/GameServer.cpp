@@ -44,19 +44,32 @@ void GameServer::handler( int event , int clntSocket )
 		}
 		catch( TCP::NoData_Ex e )
 		{
-			m_sessionMgr.expired( clntSocket );
+			//--- 해당하는 방에서 관리하는 세션정보 삭제 ---//
 			for( auto &room : m_roomList )
-				room.updateSessions();
-			
+			{
+				if( room.isPlayer(clntSocket) )
+				{
+					room.deleteSession(clntSocket);
+					break;
+				}
+			}
+				
+			m_sessionMgr.expired( clntSocket );
 			farewell( clntSocket );
 		}
 		catch( TCP::Connection_Ex e )
 		{
-			//--- Set free ---//
-			m_sessionMgr.expired( clntSocket );
+			//--- 해당하는 방에서 관리하는 세션정보 삭제 ---//
 			for( auto &room : m_roomList )
-				room.updateSessions();
-			
+			{
+				if( room.isPlayer(clntSocket) )
+				{
+					room.deleteSession(clntSocket);
+					break;
+				}
+			}
+
+			m_sessionMgr.expired( clntSocket );	
 			farewell( clntSocket );
 		}
 		break;
@@ -82,6 +95,7 @@ void GameServer::handler( int event , int clntSocket )
 			}
 		}
 		catch( Not_Found_Ex e ) { 
+			cout << "INTR" << endl;
 		}
 		break;
 	}

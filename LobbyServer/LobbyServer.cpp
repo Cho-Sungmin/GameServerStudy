@@ -34,7 +34,8 @@ void LobbyServer::handler( int event , int clntSocket )
 			case INPUT :	// Got messages
 
 				try {
-					void *pParams[2] = { &m_sessionMgr , &m_roomList };
+					//void *pParams[2] = { &m_sessionMgr , &m_roomList };
+					void *pParams[1] = { &m_sessionMgr };
 					m_msgHandler.inputHandler( clntSocket );
 					m_msgProc.processMSG( pParams );
 					m_sessionMgr.refresh( clntSocket );	// Reset timer
