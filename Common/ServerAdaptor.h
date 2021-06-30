@@ -4,23 +4,21 @@
 template <typename T>
 class ServerAdaptor {
 	
-	T	m_server;
-
+	T m_server;
 public:
-
-	void init( const char* port )
+	void init( const char *port )
 	{
 		m_server.init( port );
 	}
 
-	void ready()
+	bool ready()
 	{
-		m_server.ready();
+		return m_server.ready();
 	}
 
-	int run( void* lParam , void* rParam )
+	void run( void **inParams , void **outParams )
 	{
-		return m_server.run( lParam , rParam );
+		return m_server.run( inParams , outParams );
 	}
 
 	void stop()
@@ -32,11 +30,16 @@ public:
 	{
 		m_server.farewell( socket );	
 	}
+	
 	int getState()
 	{
 		return m_server.getState();
 	}
 
+	void handler( int lParam , int rParam )
+	{
+		m_server.handler( lParam , rParam );
+	}
 };
 
 #endif

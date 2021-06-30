@@ -1,39 +1,36 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <string>
+
 #include <sstream>
-#include "UserInfo.h"
+#include "Debug.h"
 
 using namespace std;
 
-namespace Parser {
-
-    void parseConfig( const string& target , string& result , const char& delim )
+class Parser {
+public:
+    static void parseConfig( const string &target , string &result , const char &delim )
     {
+        int idx = target.find( delim );
 
-        for( int i=0; i<target.length(); i++ )
-        {
-            if( target.at(i) == delim )
-            {
-                //const string& leftStr = target.substr( 0 , i );
-                //const string& rightStr = target.substr( i+1 );
-                result = target.substr( i+1 );
-            }
-
-        }
+        result = target.substr( idx + 1 );
     }
 
-    list<string> tokenize( const string& str , char delim )
+    static list<string> tokenize( const string &str , char delim )
     {
         list<string> result;
         int cursor = 0;
         int idx = 0;
+        int len = str.length();
 
-        while( cursor < str.length() )
+        while( cursor < len )
         {
             idx = str.find(delim , idx);
-            result.push_back( str.substr(cursor,idx) );
+            
+            if( idx == -1)
+                break;
+
+            result.push_back( str.substr( cursor , idx - cursor ) );
             idx += 1;
             cursor = idx;
         }
@@ -41,9 +38,11 @@ namespace Parser {
         return result;
     }
 
-    int findChar( const char str[] , const char c )
+    static int findChar( const char str[] , const char c )
     {
-        for( int i=0; i<strlen(str); i++ )
+        int len = strlen(str);
+
+        for( int i=0; i<len; i++ )
         {
             if( str[i] == c )
             {
@@ -53,7 +52,29 @@ namespace Parser {
 
         return -1;
     }
-    void parseUserInfo( UserInfo& target , const char data[] , const char delim )
+
+    static int strToInt( const string &str )
+    {
+        int number = 0;
+        stringstream ss( str );
+
+        ss >> number;
+
+        return number;
+    }
+
+    static int strToInt8( const string &str )
+    {
+        int8_t number = 0;
+        stringstream ss( str );
+
+        ss >> number;
+
+        return number;
+    }
+
+    #if 0
+    void parseJSON( char parsedData[] , const char jsonData[] )
     {
         const int LEN = 12;
         char tmp_str[LEN];
@@ -66,7 +87,7 @@ namespace Parser {
         {
             strncpy( tmp_str , pData , idx );
             tmp_str[idx] = '\0';
-            target.SetId( tmp_str );
+            target.setId( tmp_str );
             pData += LEN;
         }
         else
@@ -79,7 +100,7 @@ namespace Parser {
         {
             strncpy( tmp_str , pData , idx );
             tmp_str[idx] = '\0';
-            target.SetPw( tmp_str );
+            target.setPw( tmp_str );
             pData += LEN;
         }
         else
@@ -91,7 +112,7 @@ namespace Parser {
         {
             strncpy( tmp_str , pData , idx );
             tmp_str[idx] = '\0';
-            target.SetName( tmp_str );
+            target.setName( tmp_str );
             pData += idx+1;
         }
         else
@@ -102,18 +123,9 @@ namespace Parser {
         //sprintf( &target.m_age , "%d" , )
 
     }
+    #endif
+};
 
-    int strToInt( const string& str )
-    {
-        int number = 0;
-        stringstream ss( str );
 
-        ss >> number;
-
-        return number;
-    }
-
-   
-}
 
 #endif

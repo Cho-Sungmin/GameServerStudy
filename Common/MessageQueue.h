@@ -1,15 +1,15 @@
 #ifndef MESSAGE_QUEUE_H
 #define MESSAGE_QUEUE_H
 
-
+#include <memory>
 #include <queue>
 #include <stdexcept>
-
-#include "Packet.h"
-
+#include "InputByteStream.h"
 
 
-class Empty_Ex : public std::exception {
+using namespace std;
+
+class Empty_Ex : public exception {
 public:
 	virtual const char* what() const noexcept override {
 		return "Queue is empty";
@@ -18,50 +18,21 @@ public:
 
 class MessageQueue {
 
-	std::queue<Packet> 	queue;
+	std::queue<unique_ptr<InputByteStream>> queue;
 
 public:
-	
-
 	//--- Constructor ---//
-
-	MessageQueue() 	= default;
+	MessageQueue() { };
 	~MessageQueue() = default;
 
-
 	//--- Functions ---//
-	
-	bool isEmpty()
-	{	if( queue.size() == 0 )
-			return true;
-		else
-			return false;
-	}
-
-	void enqueue( const Packet& data )
-	{
-		queue.push( data );
-	}
-
-	void dequeue( Packet& source )
-	{
-
-		if( !isEmpty() ) {
-			source = queue.front();
-			queue.pop();
-		}else
-			throw Empty_Ex();
-	}
-
+	bool isEmpty();
+	void enqueue( InputByteStream *pData );
+	void dequeue( unique_ptr<InputByteStream> &data );
 
 	//--- Operator ---//
-
-	void operator=( const MessageQueue& _msgQ )
-	{
-		queue	= _msgQ.queue;
-	}
+	MessageQueue& operator=( const MessageQueue& _msgQ );
 };
 
 
 #endif
-	

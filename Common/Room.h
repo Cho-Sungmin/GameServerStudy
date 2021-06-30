@@ -1,34 +1,46 @@
 #ifndef ROOM_H
 #define ROOM_H
 
-#include <list>
-#include "Session.h"
+#include "InputByteStream.h"
+#include "OutputByteStream.h"
 
-using namespace std;
 
-namespace Room {
-    struct RoomInfo { 
-        string id = "";
-        list<Session*> sessionList;
+struct Room {
+    string roomId = "";
+    uint32_t capacity = 0;
+    uint32_t presentMembers = 0;
+    string title = "";
 
-        //--- Constructor ---//
-        RoomInfo( const string& _id ) 
-            :  id(_id)
-            
-        {
-        }
 
-    };
+    Room() = default;
+    Room( const string id ) : roomId(id) {}
+    
+    int getLength()
+    { return roomId.length() + sizeof(int) + sizeof(int) + title.length(); }
 
-    struct RoomSchema {
-        string id = "";
-        int capacity = 0;
-        int presentMembers = 0;
-        string title = "";
+    void read( InputByteStream &ibstream )
+    {
+        ibstream.read( roomId );
+        ibstream.read( capacity );
+        ibstream.read( presentMembers );
+        ibstream.read( title );
+    }
 
-    };
+    void write( OutputByteStream &obstream )
+    {
+        obstream.write( roomId );
+        obstream.write( capacity );
+        obstream.write( presentMembers );
+        obstream.write( title );
+    }
 
-     void parseRoomInfo( RoomSchema& target , const char data[] , const char delim )
+    friend ostream &operator<<( ostream &os , const Room &room )
+    {
+        return cout << '[' << room.roomId << "][" << room.title << ']';
+    }
+
+#if false
+    void parseRoomInfo( Room &target , const char data[] , const char delim )
     {
         const int LEN = 20;
         char tmp_str[LEN] = { 0x00 , };
@@ -38,7 +50,7 @@ namespace Room {
 
         //--- Set capacity from data ---//
         idx = Parser::findChar( pData , delim );
-         if( idx != -1 )
+            if( idx != -1 )
         {
             const string str = data;
             target.capacity = Parser::strToInt( str );
@@ -56,11 +68,13 @@ namespace Room {
         else
             return ;
 
-        target.id = "0";
+        target.roomId = "0";
         target.presentMembers = 0;
-        
+
     }
-}
+#endif
+};
+
 
 
 #endif

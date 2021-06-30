@@ -1,72 +1,76 @@
 #ifndef MESSAGE_PROCESSOR_H
 #define MESSAGE_PROCESSOR_H
 
+#include <map>
+#include <memory>
+#include <functional>
+
 #include "MessageQueue.h"
 #include "TCP.h"
-#include <map>
-#include <functional>
 #include "Debug.h"
-
 
 using namespace std;
 
-LOG* LOG::pInstance;
-
 class MessageProcessor {
 
-	MessageQueue& 							m_msgQ	;
-	map<int,function<void(void*,void*)>> 	m_hMap	;
-
-	const string 	m_logFileName;
-	LOG* 			m_pLog;
+	unique_ptr<InputByteStream> m_ibstream;
+	MessageQueue &m_msgQ;
+	map<int , function<void(void**,void**)>> m_hMap;
 	
-
 public:
-	
 	//--- Constructor ---//
-
 	MessageProcessor() = default;
-		
-	MessageProcessor( MessageQueue& queue , const string& fileName )
-			: 	m_msgQ( queue ),
-				m_logFileName( fileName )
+	MessageProcessor( MessageQueue &queue )
+			: 	m_msgQ( queue )
 	{
 		// init something //
-		m_pLog = LOG::getInstance( m_logFileName );
 	}
 	
 	template <typename T>
-	void registerProcedure( T& obj )
+	void registerProcedure( T &obj )
 	{
-		//m_hMap.insert( std::make_pair( key , procedure ) );
 		obj.registerHandler( m_hMap );	
 	}
-
-	void processMSG( void* lParam = nullptr , void* rParam  = nullptr )
+	
+	void processMSG( void **inParams=nullptr , void **outParams=nullptr )
 	{
-		Packet msg;
+		Header header;
 
-		try {
+		try {	
+			m_msgQ.dequeue( m_ibstream );
+			header.read( *m_ibstream );
+			m_ibstream->reUse();
 
-			m_msgQ.dequeue( msg );
-			auto itr = m_hMap.find( msg.head.func );
+			void *outparameters[] = { m_ibstream.get() };
+			void **inparameters = inParams;
 
+			auto itr = m_hMap.find( header.func );
 			if( itr != m_hMap.end() )
-				itr->second( &msg , lParam );
+			{
+				itr->second( inparameters , outparameters );
+			}
 
-			TCP::send_packet<Packet>( msg.head.sessionID , msg );
-			m_pLog->writeLOG( msg , LOG::TYPE::SEND );
+			//--- 요청에 대한 응답이 있는 경우 ---//
+			if( m_ibstream->getRemainLength() > 0 )
+			{
+				TCP::send_packet( header.sessionId , *m_ibstream );
+				LOG::getInstance()->writeLOG( *m_ibstream , LOG::TYPE::SEND );		
+			}
+			m_ibstream->reUse();
 		}
 		catch( Empty_Ex e ) {
-			//std::cout << e.what() << std::endl;
 		}
 		catch( TCP::Transmission_Ex e ) {
-			cout << e.what() << endl;
+			m_ibstream->reUse();
+		}
+		catch( TCP::Connection_Ex e ) {
+			m_ibstream->reUse();
+			throw e;
 		}
 
-		
 	}
-
 };
+
+
 
 #endif

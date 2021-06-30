@@ -7,88 +7,56 @@
 #include <iostream>
 
 class Session {
-
-	int	m_socket	= -1;
-
+protected:
+	int	m_socket = -1;
 public:
+	UserInfo m_userInfo	;
+	HB_Timer *m_pHBTimer = nullptr;
 
-	UserInfo	m_userInfo	;
-	HB_Timer* 	m_pHBTimer 	= nullptr	;
-
-	//--- Constructor ---//
-
-	Session()	= default;
-
-	Session( int socket )
+	//--- Constructors ---//
+	Session() = default;
+	Session( int socket ) : m_socket(socket) { }
+	Session( const Session &session )
 	{
-		//m_id		= id	;
-		m_socket	= socket;
+		m_socket = session.m_socket;
+		m_userInfo = session.m_userInfo;
 	}
-
-	Session( const Session& session )
+	Session( Session &&session )
 	{
-		m_socket 		= session.m_socket		;
-		m_userInfo		= session.m_userInfo	;
-	}
-
-	Session( Session&& session )
-	{
-		std::cout << "Move_Constructor" << std::endl;
-
-		m_socket 	= session.m_socket		;
-		m_userInfo	= session.m_userInfo	;
-		m_pHBTimer	= session.m_pHBTimer	;
+		m_socket = session.m_socket;
+		m_userInfo = session.m_userInfo;
+		m_pHBTimer = session.m_pHBTimer;
 
 		session.m_pHBTimer = nullptr;
 	}
 
 	//--- Destructor ---//
-
-	~Session()
+	virtual ~Session()
 	{
 		if( m_pHBTimer != nullptr ) 
 		{
-			std::cout << "Destructor" << std::endl;
-
 			if( m_pHBTimer->getState() != TIMER_SLEEP )
 				m_pHBTimer->asleep();
 
 			delete m_pHBTimer;
+			m_pHBTimer = nullptr;
 		}
 	}
 
 	//--- Functions ---//
-
-	void init( )
-	{
-		m_pHBTimer	= new HB_Timer( m_socket );
-		m_pHBTimer->awake(); 
-	}
-
-	void init( int sec , int nsec )
-	{
-		m_pHBTimer	= new HB_Timer( m_socket , sec , nsec );
-		m_pHBTimer->awake(); 
-	}
-
-	int getSessionID() const
-	{
-		return m_socket;
-	}
-
-
+	void init( int sec=3 , int nsec=0 );
+	virtual void startTimers();	
+	virtual void expireTimers();	
+	int getSessionId() const;	
 	//--- Operator ---//
-		
-	void operator=( const Session& session )
-	{
-		m_socket    = session.m_socket  	;
-		m_userInfo	= session.m_userInfo	;
-	}
+	void operator=( const Session &session );
 
+	friend ostream &operator<<( ostream &io , const Session &session )
+	{
+		return cout << '[' << to_string( session.getSessionId() ) << ']';
+	}
 };
 
 
-bool operator==( const Session& session , const Session& _session )
-{	return session.getSessionID() == _session.getSessionID();	}
 
 #endif
