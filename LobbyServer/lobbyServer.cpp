@@ -14,11 +14,10 @@ int main()
 {
 	LOG *pLog = LOG::getInstance( "LobbyServer" );
 	ServerAdaptor<LobbyServer> server;
-	list<SelectResult> resultList;
+	list<EpollResult> resultList;
 
 	//--- Server work ---//
 	server.init("1066");
-	server.ready();
 
 	int	clntSocket = -1;
 	struct sockaddr_in addr;
@@ -36,7 +35,7 @@ int main()
 
 			for( int i=0; i<resultCnt; ++i )
 			{
-				SelectResult result = resultList.front();
+				EpollResult result = resultList.front();
 
 				clntSocket = result.fd;
 				server.handler( result.event , clntSocket );
@@ -44,7 +43,7 @@ int main()
 				resultList.pop_front();
 			}
 		} 
-		catch( Select_Ex e ) {
+		catch( Epoll_Ex e ) {
 			pLog->printLOG( "EXCEPT" , "WARN" , e.what() );
 			pLog->writeLOG( "EXCEPT" , "WARN" , e.what() );
 			continue;

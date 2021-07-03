@@ -53,10 +53,11 @@ public:
 
 	//--- Functions ---//
 	int getState() const;
+	
 	virtual void init( const char *port ) override;
-	virtual bool ready();
+	virtual bool ready() override;
 	virtual void run( void **inParams=nullptr , void **outParams=nullptr ) override;
-    virtual void stop();
+    virtual void stop() override;
 	//--- Clear expired fd ---//
 	virtual void farewell( int expired_fd ) override;
 };

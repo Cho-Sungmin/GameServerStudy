@@ -1,7 +1,7 @@
 #ifndef GAME_SERVER_H
 #define GAME_SERVER_H
 
-#include "SelectIOServer.h"
+#include "EpollServer.h"
 #include "RoomMessageHandler.h"
 #include "RoomManager.h"
 #include "MessageProcessor.h"
@@ -9,7 +9,7 @@
 #include "UserDB.h"
 #include "UserRedis.h"
 
-class LobbyServer : public SelectIOServer {
+class LobbyServer : public EpollServer {
     UserRedis *m_pRedis = UserRedis::getInstance();
 
     SessionManager m_sessionMgr;
@@ -33,23 +33,23 @@ public:
     }
 
 	virtual void init( const char *port ) override {
-        SelectIOServer::init( port );
+        EpollServer::init( port );
         initDB();
     }
 	virtual bool ready() override {
-        SelectIOServer::ready();
+        EpollServer::ready();
     }
 
 	virtual void run( void **inParams=nullptr , void **outParams=nullptr ) override {
-        SelectIOServer::run( inParams , outParams );
+        EpollServer::run( inParams , outParams );
     }
 
     virtual void stop() {
-        SelectIOServer::stop();
+        EpollServer::stop();
     }
 	//--- Clear expired fd ---//
 	virtual void farewell( int expired_fd ) override {
-        SelectIOServer::farewell( expired_fd );
+        EpollServer::farewell( expired_fd );
     }
 
     void initDB();

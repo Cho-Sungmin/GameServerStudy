@@ -16,6 +16,10 @@ void TCP::send_packet( int dest_fd , InputByteStream &packet )
         {
             if( errno == EINTR )
                 continue;
+            else if( errno == EAGAIN ){
+                usleep(2000);
+                continue;
+            }
 
             Connection_Ex ex;
             LOG::getInstance()->printLOG( "TCP" , "WARN" , ex.what() );
@@ -58,6 +62,10 @@ void TCP::send_packet( int dest_fd , InputByteStream &packet )
         {
             if( errno == EINTR )
                 continue;
+            else if( errno == EAGAIN ){
+                usleep(2000);
+                continue;
+            }
 
             Connection_Ex ex;
             LOG::getInstance()->printLOG( "TCP" , "WARN" , ex.what() );
@@ -100,6 +108,10 @@ void TCP::recv_packet( int src_fd , OutputByteStream &packet )
         {
             if( errno == EINTR )
                 continue;
+            else if( errno == EAGAIN ){
+                usleep(2000);
+                continue;
+            }
 
             Connection_Ex ex;
             LOG::getInstance()->printLOG( "TCP" , "WARN" , ex.what() );
@@ -146,6 +158,11 @@ void TCP::recv_packet( int src_fd , OutputByteStream &packet )
         {
             if( errno == EINTR )
                 continue;
+            else if( errno == EAGAIN ){
+                LOG::getInstance()->writeLOG( "TCP" , "TEST" , "EAGAIN = " + to_string(src_fd) );
+                usleep(2000);
+                continue;
+            }
 
             Connection_Ex ex;
             LOG::getInstance()->printLOG( "TCP" , "WARN" , ex.what() );

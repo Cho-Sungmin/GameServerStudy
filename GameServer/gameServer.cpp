@@ -14,12 +14,10 @@ int main()
 {
 	LOG *pLog = LOG::getInstance( "GameServer" );
 	ServerAdaptor<GameServer> server;
-	list<SelectResult> resultList;
+	list<EpollResult> resultList;
 
 	//--- Init server ---//
 	server.init("9933");
-	if( !server.ready() )
-		return 0;
 
 	int	clntSocket = -1;
 	struct sockaddr_in addr;
@@ -37,7 +35,7 @@ int main()
 
 			for( int i=0; i<resultCnt; ++i )
 			{
-				SelectResult result = resultList.front();
+				EpollResult result = resultList.front();
 
 				clntSocket = result.fd;
 				server.handler( result.event , clntSocket );
@@ -45,7 +43,7 @@ int main()
 				resultList.pop_front();	
 			}	
 		} 
-		catch( Select_Ex e ) {
+		catch( Epoll_Ex e ) {
 			pLog->printLOG( "EXCEPT" , "ERROR" , e.what() );
 			pLog->writeLOG( "EXCEPT" , "ERROR" , e.what() );
 			continue;

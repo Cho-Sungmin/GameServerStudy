@@ -17,8 +17,6 @@ void MessageHandler::acceptHandler( SessionManager &sessionMgr , int clntSocket 
         header.insert_front( *m_obstream );
 
         m_msgQ.enqueue( new InputByteStream( *m_obstream ) );
-
-        
     }
     catch( Not_Found_Ex e )
     {}
