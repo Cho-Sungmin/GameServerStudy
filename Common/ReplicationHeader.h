@@ -25,11 +25,17 @@ struct ReplicationHeader {
 
     void read( InputByteStream &ibstream )
     {
-        ibstream.read( m_action );
-        ibstream.read( m_objectId );
+        try{
+            ibstream.read( m_action );
+            ibstream.read( m_objectId );
 
-        if( m_action != DESTROY )
-            ibstream.read( m_classId );
+            if( m_action != DESTROY )
+                ibstream.read( m_classId );
+        }
+        catch( std::exception &e )
+        {
+            throw;
+        }
     }
 
     void write( OutputByteStream &obstream )

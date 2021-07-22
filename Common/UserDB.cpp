@@ -38,7 +38,7 @@ void UserDB::getUserData( UserInfo &data )
         finalizeQuery();
     }
 
-    const string logStr = to_string(result) + " result(s) founded";
+    const string logStr = to_string(result) + " result(s) found";
     LOG::getInstance()->printLOG( "MYSQL" , "OK" , logStr );
     LOG::getInstance()->writeLOG( "MYSQL" , "OK" , logStr );
 }
@@ -79,7 +79,7 @@ void UserDB::verifyUserInfo( void **inParams , void **outParams )
         *pPacket = *m_obstream;
         m_obstream->flush();
     }
-    catch( Not_Found_Ex e )
+    catch( Not_Found_Ex &e )
     {
     }
         

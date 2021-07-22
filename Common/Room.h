@@ -20,10 +20,16 @@ struct Room {
 
     void read( InputByteStream &ibstream )
     {
-        ibstream.read( roomId );
-        ibstream.read( capacity );
-        ibstream.read( presentMembers );
-        ibstream.read( title );
+        try{
+            ibstream.read( roomId );
+            ibstream.read( capacity );
+            ibstream.read( presentMembers );
+            ibstream.read( title );
+        }
+        catch( exception &e )
+        {
+            throw;
+        }
     }
 
     void write( OutputByteStream &obstream )

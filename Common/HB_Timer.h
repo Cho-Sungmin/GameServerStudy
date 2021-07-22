@@ -4,6 +4,7 @@
 #include "Timer.h"
 #include "TCP.h"
 #include "Debug.h"
+#include "JobQueue.h"
 
 class HB_Timer : public Timer {
 	int	m_fd = -1;
@@ -13,7 +14,7 @@ public:
 	//--- Constructor ---//
 
 	HB_Timer( int _fd , int sec=3 , int nsec=0 )
-			: Timer(sec , nsec), m_fd(_fd)
+			: Timer(sec , nsec) , m_fd(_fd)
 	{
 		struct sigaction action = {0};
 
@@ -30,6 +31,8 @@ public:
 
 	~HB_Timer()
 	{ LOG::getInstance()->printLOG( "DEBUG" , "TIMER" , "Heart-beat timer(" + to_string(m_fd) + ") DESTROYED" ); }
+
+	void sendHeartBeat( int dest_fd );
 };
 
 

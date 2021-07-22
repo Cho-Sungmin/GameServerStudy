@@ -86,10 +86,16 @@ typedef struct header {
 
 	void read( InputByteStream &ibstream )
 	{
-		ibstream.read( type );
-		ibstream.read( func );
-		ibstream.read( len );
-		ibstream.read( sessionId );
+		try{
+			ibstream.read( type );
+			ibstream.read( func );
+			ibstream.read( len );
+			ibstream.read( sessionId );
+		}
+        catch( std::exception &e )
+        {
+            throw;
+        }
 	}
 
 	void write( OutputByteStream &obstream )

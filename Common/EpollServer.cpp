@@ -1,5 +1,6 @@
-#include <list>
+
 #include "EpollServer.h"
+#include "TCP.h"
 
 int EpollServer::getState() const { return m_state; }
 
@@ -9,26 +10,49 @@ void EpollServer::createEpoll()
 
     if( m_epoll == -1 )
     {
-        close( m_listenSocket );
+        TCP::closeSocket( m_listenSocket );
         LOG::getInstance()->printLOG( "EPOLL" , "ERROR" , "createEpoll()" );
         LOG::getInstance()->writeLOG( "EPOLL" , "ERROR" , "createEpoll()" );
+        perror("Reason : ");
 
-        throw Epoll_Ex();
+        throw Epoll_Ex( "createEpoll()" );
     }      
 }
 
 void EpollServer::controlEpoll( int op , int target_fd , uint32_t events=EPOLLIN )
 {
+    string logStr = "controlEpoll() : ";
     struct epoll_event event;
     event.events = events;
     event.data.fd = target_fd;
+    
 
     if( epoll_ctl( m_epoll , op , target_fd , &event ) == -1 )
     {
-        LOG::getInstance()->printLOG( "EPOLL" , "ERROR" , "controlEpoll()" );
-        LOG::getInstance()->writeLOG( "EPOLL" , "ERROR" , "controlEpoll()" );
+        bool isFatal = false;
 
-        throw Epoll_Ex();
+        string reason = "UNDEFINED";
+
+        switch( errno ){
+            case ENOENT :
+                reason = "ENOENT";
+                break;
+            case EBADF :    // 유효하지 않은 fd, 이미 닫힌 fd
+                reason = "EBADF";
+                break;
+            default :
+                isFatal = true;
+                perror("Reason");
+                break;
+        }
+
+        logStr = logStr + reason + '(' + to_string(target_fd) + ')';
+
+        LOG::getInstance()->printLOG( "EPOLL" , "ERROR" , logStr );
+        LOG::getInstance()->writeLOG( "EPOLL" , "ERROR" , logStr );
+ 
+        if( isFatal )
+            throw Epoll_Ex( logStr );
     }
 
 }
@@ -43,7 +67,7 @@ int EpollServer::waitEventNotifications( struct epoll_event *events , int maxEve
 
         switch(errno)
         {
-            case EBADF :    // 유효하지 않는 epoll fd
+            case EBADF :    // 유효하지 않는 fd
                 errStr = "EBADF";
                 break;
             case EFAULT :   // 이벤트가 가리키는 메모리를 참조할 수 없음( 쓰기권한 X )
@@ -58,8 +82,10 @@ int EpollServer::waitEventNotifications( struct epoll_event *events , int maxEve
             default :
                 break;
         }
-        
-        LOG::getInstance()->printLOG( "EPOLL" , "ERROR" , "epoll_wait : " + errStr );
+        if( errStr != "EINTR" )
+            LOG::getInstance()->printLOG( "EPOLL" , "ERROR" , "epoll_wait : " + errStr );
+        else
+            LOG::getInstance()->printLOG( "EPOLL" , "ERROR" , "epoll_wait : " + errStr );
 
         throw Epoll_Ex( errStr );
     }
@@ -86,11 +112,11 @@ void EpollServer::handleEvent( struct epoll_event event , EpollResult &result )
                     if( m_mode == O_NONBLOCK )
                         setSocketToNonBlocking( clntSocket );
 
-                    controlEpoll( EPOLL_CTL_ADD , clntSocket ); // Interest list에 새로운 소켓 등록
+                    controlEpoll( EPOLL_CTL_ADD , clntSocket , EPOLLIN ); // Interest list에 새로운 소켓 등록
                     result.fd = clntSocket;
                     result.event = ACCEPT;
 
-                    LOG::getInstance()->printLOG( "EPOLL" , "NOTI" , "새로운 클라이언트 접속" );
+                    LOG::getInstance()->printLOG( "EPOLL" , "NOTI" , "새로운 클라이언트 접속(" + to_string(clntSocket) + ')' );
                 }
             }
             //--- 패킷 전송인 경우 ---//
@@ -101,11 +127,13 @@ void EpollServer::handleEvent( struct epoll_event event , EpollResult &result )
                 result.event = INPUT;
             }
 
+            handler( result.event , result.fd );
+            //m_jobQueue.enqueue( [this,result]{ handler( result.event , result.fd ); } );
             
             break;
         }
-        
         case EPOLLOUT :  // 출력버퍼 사용 가능
+            LOG::getInstance()->printLOG( "EPOLL" , "EVENT" , "EPOLLOUT" );
             break;
 
         case EPOLLHUP : // 발신 측 연결이 종료됨
@@ -124,6 +152,7 @@ void EpollServer::handleEvent( struct epoll_event event , EpollResult &result )
             LOG::getInstance()->printLOG( "EPOLL" , "EVENT" , "EPOLLPRI" );
             break;
         default :
+            LOG::getInstance()->printLOG( "EPOLL" , "EVENT" , "EPOLL_DEFAULT(" + to_string(event.events) + ')' );
             break;
     }
 }
@@ -134,7 +163,7 @@ void EpollServer::init( const char *port )
     assert( ready() );
 
     createEpoll();
-    controlEpoll( EPOLL_CTL_ADD , m_listenSocket , EPOLLIN|EPOLLRDHUP|EPOLLPRI );
+    controlEpoll( EPOLL_CTL_ADD , m_listenSocket , EPOLLIN );
 }
 
 bool EpollServer::ready() 
@@ -149,7 +178,6 @@ bool EpollServer::ready()
 
 void EpollServer::run( void **inParams , void **outParams )
 {
-    list<EpollResult> *pResultList = static_cast<list<EpollResult>*>(outParams[0]);
     struct epoll_event events[MAX_EVENTS];
     EpollResult result;
     
@@ -159,17 +187,12 @@ void EpollServer::run( void **inParams , void **outParams )
         for( int i=0; i<numOfEvents; ++i )
         {
             handleEvent( events[i] , result );
-
-            if( result.fd != 0 )
-            {
-                pResultList->push_back( result );
-                result.fd = 0;
-            }
+            result.fd = 0;
         }
     }
     catch( Epoll_Ex e )
     {
-        
+        cout << e.what() << endl;
     }
 }
 
@@ -178,5 +201,35 @@ void EpollServer::stop() { m_state = STOP; }
 void EpollServer::farewell( int expired_fd )
 {
     controlEpoll( EPOLL_CTL_DEL , expired_fd );
-	close( expired_fd );
+	TCP::closeSocket( expired_fd );
+}
+
+//--- For multi-threading ---//
+void EpollServer::initThreads()
+{
+    m_pIOEventWaiter = new thread( [this]{ waitEventRoutine(); } );
+}
+
+void EpollServer::waitEventRoutine()
+{
+    void **pInParams = nullptr;
+    void **pOutParams = nullptr;
+
+	while( getState() != STOP ) 
+	{
+		try {
+			run( pInParams , pOutParams );
+		} 
+		catch( Epoll_Ex e ) {
+			LOG::getInstance()->printLOG( "EXCEPT" , "ERROR" , e.what() );
+			LOG::getInstance()->writeLOG( "EXCEPT" , "ERROR" , e.what() );
+			continue;
+		}
+	}
+}
+
+void EpollServer::handler( int event , int clntSocket )
+{
+    // Override
+    cout << "Epoll Server handler()" << endl;
 }

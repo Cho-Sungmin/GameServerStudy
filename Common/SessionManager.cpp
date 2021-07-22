@@ -48,11 +48,11 @@ void SessionManager::expired( int sessionId )
             pSession->expireTimers();
             m_sessionList.remove( pSession );
             delete pSession;
-            LOG::getInstance()->printLOG( "SESSION" , "NOTI" , "Expired session[" + to_string( sessionId ) + "]" );
+            LOG::getInstance()->printLOG( "SESSION" , "NOTI" , "Session's just expired[" + to_string( sessionId ) + "]" );
         }
     }catch( Not_Found_Ex e )
     {
-        cout << "expired" << endl;
+        LOG::getInstance()->printLOG( "SESSION" , "NOTI" , "Already expired [" + to_string( sessionId ) + "]" );
     }
 }
 

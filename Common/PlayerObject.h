@@ -37,9 +37,15 @@ public:
 
     virtual void read( InputByteStream &ibstream )
     {
-        position.read( ibstream );
-        velocity.read( ibstream );
-        ibstream.read( direction );
+        try{
+            position.read( ibstream );
+            velocity.read( ibstream );
+            ibstream.read( direction );
+        }
+        catch( std::exception &e )
+        {
+            throw;
+        }
     }
     
     virtual void write( OutputByteStream &obstream )

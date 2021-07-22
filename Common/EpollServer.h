@@ -3,8 +3,15 @@
 
 #include <sys/epoll.h>
 #include <sys/unistd.h>
+#include <thread>
+#include <functional>
+#include <condition_variable>
+#include <queue>
+
 #include "Debug.h"
 #include "Server.h"
+#include "JobQueue.h"
+
 
 #define MAX_EVENTS 5
 
@@ -21,15 +28,14 @@ enum TIMEOUT : int {
     NON_BLOCKING = 0
 };
 
-class Epoll_Ex : exception {
+class Epoll_Ex : runtime_error {
 public:
     string errCode = "";
 
-    Epoll_Ex() = default;
-    Epoll_Ex( const string &code ) { errCode = code; }
+    Epoll_Ex( const string &code ) : runtime_error(code) { errCode = code; }
       
     virtual const char *what() const noexcept override {
-        return "Epoll exception";
+        return errCode.c_str();
     }
 };
 
@@ -42,14 +48,41 @@ class EpollServer : public Server {
     int m_state;
     int m_epoll;
 
+    //--- For multi-threading ---//
+    condition_variable m_conditionVar;
+    mutex m_mutex;
+
+protected:
+    JobQueue *m_pJobQueue;
+    thread *m_pIOEventWaiter;
+
+    //--- For multi-threading ---//
+    void initThreads();
+    void waitEventRoutine();
+    virtual void handler( int event , int clntSocket );
+    virtual void processMSG() {};
+    ///////////////////////////////
+private:
     void createEpoll();
     void controlEpoll( int op , int target_fd , uint32_t event );
     int waitEventNotifications( struct epoll_event *events , int maxEvents , int timeout );
     void handleEvent( struct epoll_event event , EpollResult &result );
 
 public:
-    EpollServer() = default;
-    EpollServer( int mode ) : Server(mode) {}
+    
+
+    EpollServer() : Server() {
+        m_pJobQueue = JobQueue::getInstance();
+    }
+    
+    EpollServer( int mode ) : Server(mode) {
+        m_pJobQueue = JobQueue::getInstance();
+    }
+    ~EpollServer()
+    {
+        if( m_pJobQueue != nullptr )
+            delete m_pJobQueue;
+    }
     int getState() const;
 
     virtual void init( const char *port ) override;
@@ -58,6 +91,7 @@ public:
     virtual void stop() override;
 	//--- Clear expired fd ---//
 	virtual void farewell( int expired_fd ) override;
+
 };
 
 #endif

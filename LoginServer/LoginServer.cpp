@@ -9,11 +9,25 @@ void LoginServer::initDB()
         m_pRedis->cleanAll();
         m_userDB.init();
     }
-    catch( RedisException::Connection_Ex e )
+    catch( RedisException::Connection_Ex &e )
     {
         // TODO : Reconnection routine //
         std::cout << "Process terminate" << std::endl;
     }
+}
+
+void LoginServer::processMSG()
+{
+    void *pParams[1] = { &m_sessionMgr };
+
+    try{
+        m_msgProc.processMSG( pParams );
+	}
+	catch( TCP::Connection_Ex &e )
+	{
+		m_sessionMgr.expired( e.fd );	
+		farewell( e.fd );
+	}
 }
 
 void LoginServer::handler( int event , int clntSocket )
@@ -21,7 +35,6 @@ void LoginServer::handler( int event , int clntSocket )
     try {
         //--- Event handling ---//
         switch( event ) {
-
             case INVALID :	// Invalid type of event
             {
                 m_msgHandler.invalidHandler();
@@ -30,21 +43,19 @@ void LoginServer::handler( int event , int clntSocket )
             case ACCEPT :	// Connection
             {    
                 m_msgHandler.acceptHandler( m_sessionMgr , clntSocket , string( "LoginServer" ) );
-                m_msgProc.processMSG();
+                m_pJobQueue->enqueue( [this]{ processMSG(); } );
                 break;
             }
             case INPUT :	// Got messages
             {
-                void *pParams[1] = { &m_sessionMgr };
                 m_msgHandler.inputHandler( clntSocket );
-                m_msgProc.processMSG( pParams );
                 m_sessionMgr.refresh( clntSocket );	// Reset timer
-                
+                m_pJobQueue->enqueue( [this]{ processMSG(); } ); 
                 break;
             }
             case INTR :	// Signal after HB_Timer handler called
             {
-                //--- Set invalid sessions free ---//
+                //--- 만료된 세션을 찾아서 처리 ---//
                 const list<Session*> &sessionList = m_sessionMgr.getSessionList();
 
                 for( auto pSession : sessionList )
@@ -66,17 +77,12 @@ void LoginServer::handler( int event , int clntSocket )
                 break;
         }
     }
-    catch( Not_Found_Ex e ) { 
+    catch( Not_Found_Ex &e ) { 
     }
-    catch( TCP::NoData_Ex e )
+    catch( TCP::TCP_Ex &e )
     {
         m_sessionMgr.expired( clntSocket );
         farewell( clntSocket );
     }
-    catch( TCP::Connection_Ex e )
-    {
-        //--- Set free ---//
-        m_sessionMgr.expired( clntSocket );
-        farewell( clntSocket );
-    }
+
 }

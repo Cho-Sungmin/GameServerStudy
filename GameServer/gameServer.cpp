@@ -12,48 +12,30 @@ LOG *LOG::m_pInstance;
 
 int main()
 {
+	signal( SIGPIPE , SIG_IGN );
 	LOG *pLog = LOG::getInstance( "GameServer" );
-	ServerAdaptor<GameServer> server;
+	ServerAdaptor<GameServer> server( O_NONBLOCK );
 	list<EpollResult> resultList;
+	string cmd = "";
 
 	//--- Init server ---//
 	server.init("9933");
 
-	int	clntSocket = -1;
-	struct sockaddr_in addr;
-
-	void **pInParams = nullptr;
-	void *pOutParams[2] = { &resultList , &addr };
-	
-	while( server.getState() != STOP ) 
+	while( true )
 	{
-		clntSocket = -1;
+		cin >> cmd;
 
-		try {
-			server.run( pInParams , pOutParams );
-			int resultCnt = resultList.size();
-
-			for( int i=0; i<resultCnt; ++i )
-			{
-				EpollResult result = resultList.front();
-
-				clntSocket = result.fd;
-				server.handler( result.event , clntSocket );
-				
-				resultList.pop_front();	
-			}	
-		} 
-		catch( Epoll_Ex e ) {
-			pLog->printLOG( "EXCEPT" , "ERROR" , e.what() );
-			pLog->writeLOG( "EXCEPT" , "ERROR" , e.what() );
-			continue;
+		if( cin.fail() )
+		{
+			cin.ignore(100,'\n');
+			cin.clear();
 		}
+		else if( cmd == "quit" )
+			break;
 	}
 
 	if( pLog != nullptr)
-	{
 		delete(pLog);
-	}
 
 	return 0;
 }

@@ -4,22 +4,26 @@
 #include "Timer.h"
 #include "RoomManager.h"
 #include "ReplicationManager.h"
+#include "JobQueue.h"
+
 #include <list>
 
 class ReplicationTimer : public Timer {
     int	m_fd = -1;
 	RoomManager &m_roomMgr;
-	InputByteStream m_ibstream;
-	OutputByteStream m_obstream;
+	mutex m_mutex;
+
 
 public:
 	static void handler( int signo , siginfo_t *pInfo , void *uc );
+	void sendReplicationReq( GameObject *pObj );
+	
 
     //--- Constructor ---//
 	ReplicationTimer() = default; 
 
 	ReplicationTimer( RoomManager &roomMgr , int _fd , int sec=0 , int nsec=200000000 )    // 200ms
-			:  Timer(sec , nsec) , m_fd(_fd) , m_roomMgr(roomMgr) , m_ibstream( TCP::MPS ) , m_obstream( TCP::MPS )
+			:  Timer(sec , nsec) , m_fd(_fd) , m_roomMgr(roomMgr)
 	{
 		struct sigaction action = {0};
 		
@@ -46,30 +50,40 @@ void ReplicationTimer::handler( int signo , siginfo_t *pInfo , void *uc )
 	ReplicationTimer *pRepTimer = reinterpret_cast<ReplicationTimer*>( pInfo->si_value.sival_ptr );
 
 	RoomManager &roomMgr = pRepTimer->m_roomMgr;
-	InputByteStream &ibstream = pRepTimer->m_ibstream;
-	OutputByteStream &obstream = pRepTimer->m_obstream;
 	list<GameObject*> gameObjects = roomMgr.getGameObjects();
-	ReplicationManager &repMgr = roomMgr.m_replicationMgr;
 
 	for( auto obj : gameObjects )
 	{
-		repMgr.replicateUpdate( obstream , obj );
-
-		Header header;
-		header.type = PACKET_TYPE::REQ;
-		header.func = FUNCTION_CODE::REQ_REPLICATION;
-		header.len = obstream.getLength();
-		header.sessionId = pRepTimer->m_fd;
-
-		header.insert_front( obstream );
-
-		ibstream = obstream;
-		
-		TCP::send_packet( pRepTimer->m_fd , ibstream );
-		LOG::getInstance()->writeLOG( ibstream , LOG::TYPE::SEND );
-	
-		obstream.flush();
-		ibstream.reUse();
+		JobQueue::getInstance()->enqueue( [pRepTimer,obj]{ pRepTimer->sendReplicationReq( obj ); });
 	}
 }
+
+void ReplicationTimer::sendReplicationReq( GameObject *pObj )
+{
+	InputByteStream ibstream(TCP::MPS);
+	OutputByteStream obstream(TCP::MPS);
+
+	m_roomMgr.m_replicationMgr.replicateUpdate( obstream , pObj );
+
+	Header header;
+	header.type = PACKET_TYPE::REQ;
+	header.func = FUNCTION_CODE::REQ_REPLICATION;
+	header.len = obstream.getLength();
+	header.sessionId = m_fd;
+
+	header.insert_front( obstream );
+
+	ibstream = obstream;
+
+	try{
+		TCP::send_packet( m_fd , ibstream , true );
+		LOG::getInstance()->writeLOG( ibstream , LOG::TYPE::SEND );
+	}
+	catch( TCP::Connection_Ex &e )
+	{
+		asleep();
+	};
+}
+
+
 #endif

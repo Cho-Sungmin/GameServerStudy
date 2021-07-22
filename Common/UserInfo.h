@@ -23,10 +23,16 @@ public:
 
     void read( InputByteStream &ibstream )
     {
-        ibstream.read( id );
-        ibstream.read( pw );
-        ibstream.read( name );
-        ibstream.read( age );
+        try{
+            ibstream.read( id );
+            ibstream.read( pw );
+            ibstream.read( name );
+            ibstream.read( age );
+        }
+        catch( exception &e )
+        {
+            throw;
+        }
     }
 
     void write( OutputByteStream &obstream )

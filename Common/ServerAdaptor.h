@@ -6,6 +6,9 @@ class ServerAdaptor {
 	
 	T m_server;
 public:
+	ServerAdaptor() = default;
+	ServerAdaptor( int mode ) : m_server(mode) {}
+
 	void init( const char *port )
 	{
 		m_server.init( port );
@@ -18,7 +21,7 @@ public:
 
 	void run( void **inParams , void **outParams )
 	{
-		return m_server.run( inParams , outParams );
+		m_server.run( inParams , outParams );
 	}
 
 	void stop()

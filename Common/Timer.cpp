@@ -25,7 +25,7 @@ void Timer::asleep()
     if( m_state != TIMER_SLEEP )
     {
         if( timer_delete( m_id ) == -1 ) {
-            throw Asleep_Ex();
+            std::cout << "Already asleep" << std::endl;
         }else {
             m_state = TIMER_SLEEP;
         }

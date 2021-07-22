@@ -6,15 +6,15 @@
 //--- 새로운 플레이어를 위한 GameObject 생성 및 GameObjectManager에 등록 ---//
 void GameMessageHandler::createBasicGameObjects( RoomManager &manager , list<GameObject*> &basicObjList )
 {
+    OutputByteStream obstream( TCP::MPS );
+    InputByteStream ibstream( TCP::MPS );
     ReplicationHeader header( Action::CREATE , 0 , PlayerObject::CLASS_ID );
-    header.write( *m_obstream );
-    *m_ibstream = *m_obstream;
 
-    uint32_t newObjectId = manager.m_replicationMgr.replicate( *m_ibstream );
+    header.write( obstream );
+    ibstream = obstream;
+
+    uint32_t newObjectId = manager.m_replicationMgr.replicate( ibstream );
     basicObjList.push_back( manager.findGameObject( newObjectId ) );
-
-    m_ibstream->reUse();
-    m_obstream->flush();
 }
 
 //--- Join 요청에 대한 처리 및 응답 메시지 생성 ---//
@@ -23,6 +23,8 @@ void GameMessageHandler::resJoinGame( void **inParams , void **outParams )
     SessionManager *pSessionMgr = static_cast<SessionManager*>( inParams[0] );
     list<RoomManager> *pRoomList = static_cast<list<RoomManager>*>( inParams[1] );
     InputByteStream *pPacket = static_cast<InputByteStream*>( outParams[0] );
+    OutputByteStream obstream( TCP::MPS );
+    InputByteStream ibstream( TCP::MPS );
     Header header; header.read( *pPacket );
 
     //--- Extract room id from message ---//
@@ -41,7 +43,7 @@ void GameMessageHandler::resJoinGame( void **inParams , void **outParams )
     try{
         pInstance->hmgetUserInfo( userInfo );
     }
-    catch( UserRedisException e ) { }
+    catch( UserRedisException &e ) { }
 
     //--- Redis에서 존재하는 방 정보 확인 ---//
     Room room(roomId);
@@ -83,7 +85,7 @@ void GameMessageHandler::resJoinGame( void **inParams , void **outParams )
             pNewSession->startTimers();
             result = true;
         }
-        catch( Not_Found_Ex e ) { 
+        catch( Not_Found_Ex &e ) { 
             cout << "resJoin" << endl;
         }
     }
@@ -99,10 +101,10 @@ void GameMessageHandler::resJoinGame( void **inParams , void **outParams )
 
         for( auto obj : basicObjects ) 
         {
-            pTargetRoom->m_replicationMgr.replicateCreate( *m_obstream , obj );
+            pTargetRoom->m_replicationMgr.replicateCreate( obstream , obj );
         }
         header.func = FUNCTION_CODE::RES_JOIN_GAME_SUCCESS;
-        header.len = m_obstream->getLength();
+        header.len = obstream.getLength();
     }
     else
     {
@@ -111,9 +113,8 @@ void GameMessageHandler::resJoinGame( void **inParams , void **outParams )
         header.len = 0;
     }
 
-    header.insert_front( *m_obstream );
-    *pPacket = *m_obstream;
-    m_obstream->flush();
+    header.insert_front( obstream );
+    *pPacket = obstream;
 }
 
 //--- Replication Noti에 대한 처리 ---//
@@ -198,6 +199,13 @@ void GameMessageHandler::registerHandler( map<int , function<void(void**,void**)
                                         this->chatBroadcast(in,out); 
                                     } 
                                 ) 
+                );
+    h_map.insert( make_pair( (int)FUNCTION_CODE::NOTI_BYE , 
+                                    [this](void **in , void **out) 
+                                    { 
+                                        this->bye( in , out ); 
+                                    } 
+                            ) 
                 );
     //h_map[VERIFY] = [this](void* l,void* r) {this->verifyUserInfo(l,r);};
 }

@@ -1,6 +1,8 @@
 #include <iostream>
 #include <list>
 
+#include <queue>
+
 #include "ServerAdaptor.h"
 #include "LoginServer.h"
 
@@ -11,47 +13,30 @@ LOG *LOG::m_pInstance;
 
 int main()
 {
+	signal( SIGPIPE , SIG_IGN );
 	LOG *pLog = LOG::getInstance( "LoginServer" );
-	ServerAdaptor<LoginServer> server;
-	list<EpollResult> resultList;
-
+	ServerAdaptor<LoginServer> server( O_NONBLOCK );
+	string cmd = "";
+	
 	//--- Server work ---//
 	server.init("1091");
 	
-	int	clntSocket = -1;
-	struct sockaddr_in addr;
-
-	void **pInParams = nullptr;
-	void *pOutParams[2] = { &resultList , &addr };
-	
-	while( server.getState() != STOP ) 
+	while( true )
 	{
-		clntSocket = -1;
+		cin >> cmd;
 
-		try {
-			server.run( pInParams , pOutParams );
-			int resultCnt = resultList.size();
-
-			for( int i=0; i<resultCnt; ++i )
-			{
-				EpollResult result = resultList.front();
-
-				clntSocket = result.fd;
-				server.handler( result.event , clntSocket );
-				
-				resultList.pop_front();
-			}
-		} 
-		catch( Epoll_Ex e ) {
-			pLog->printLOG( "EXCEPT" , "ERROR" , e.what() );
-			pLog->writeLOG( "EXCEPT" , "ERROR" , e.what() );
-			continue;
+		if( cin.fail() )
+		{
+			cin.ignore(100,'\n');
+			cin.clear();
 		}
-		
+		else if( cmd == "quit" )
+			break;
 	}
 
-	pLog->close();
-
+	if( pLog != nullptr)
+		delete(pLog);
+	
 	return 0;
 }
 	

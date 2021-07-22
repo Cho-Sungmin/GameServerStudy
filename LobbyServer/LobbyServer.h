@@ -8,18 +8,27 @@
 #include "Session.h"
 #include "UserDB.h"
 #include "UserRedis.h"
+#include "ThreadPool.h"
 
 class LobbyServer : public EpollServer {
     UserRedis *m_pRedis = UserRedis::getInstance();
 
     SessionManager m_sessionMgr;
-	//list<RoomManager> m_roomList;
-
     RoomMessageHandler m_msgHandler;
 	MessageProcessor m_msgProc;
     MessageQueue m_msgQ;
 
+    ThreadPool *m_pThreadPool;
+
+    virtual void processMSG() override;
+    virtual void handler( int event , int clntSocket = -1 ) override;
+
 public:
+    LobbyServer( int mode ) : EpollServer( mode ) , m_msgHandler( m_msgQ ) , m_msgProc( m_msgQ )  
+    {
+        m_msgProc.registerProcedure( m_msgHandler );
+    } 
+
     LobbyServer() : m_msgHandler( m_msgQ ) , m_msgProc( m_msgQ )
     {
         m_msgProc.registerProcedure( m_msgHandler );
@@ -35,6 +44,8 @@ public:
 	virtual void init( const char *port ) override {
         EpollServer::init( port );
         initDB();
+        EpollServer::initThreads();
+        m_pThreadPool = new ThreadPool();
     }
 	virtual bool ready() override {
         EpollServer::ready();
@@ -53,8 +64,6 @@ public:
     }
 
     void initDB();
-    void handler( int event , int clntSocket = -1 );
-    
 };
 
 #endif

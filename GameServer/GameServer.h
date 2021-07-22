@@ -8,6 +8,7 @@
 #include "Session.h"
 #include "UserDB.h"
 #include "UserRedis.h"
+#include "ThreadPool.h"
 
 class GameServer : public EpollServer {
     UserRedis *m_pRedis = UserRedis::getInstance();
@@ -20,7 +21,17 @@ class GameServer : public EpollServer {
 	GameMessageHandler m_msgHandler;
 	MessageProcessor m_msgProc;
 
+    ThreadPool *m_pThreadPool;
+
+    virtual void processMSG() override;
+    virtual void handler( int event , int clntSocket = -1 ) override;
+
 public:
+    GameServer( int mode ) : EpollServer( mode ) , m_userDB(m_pRedis) , m_msgHandler( m_msgQ ) , m_msgProc( m_msgQ ) 
+    {
+        m_msgProc.registerProcedure( m_msgHandler );
+    } 
+
     GameServer() : m_userDB(m_pRedis) , m_msgHandler( m_msgQ ) , m_msgProc( m_msgQ )
     {
         m_msgProc.registerProcedure( m_msgHandler );
@@ -28,7 +39,6 @@ public:
 
     ~GameServer()
     {
-        LOG::getInstance()->printLOG( "DEBUG" , "GAME_SERVER" , "Distructor" );
         m_sessionMgr.expireAll();
         m_pRedis->cleanAll();
         m_userDB.destroy();
@@ -38,6 +48,8 @@ public:
 	virtual void init( const char *port ) override {
         EpollServer::init( port );
         initDB();
+        EpollServer::initThreads();
+        m_pThreadPool = new ThreadPool();
     }
 	virtual bool ready() override {
         return EpollServer::ready();
@@ -55,8 +67,6 @@ public:
     }
 
     void initDB();
-    void handler( int event , int clntSocket = -1 );
-    
 };
 
 #endif
