@@ -61,7 +61,12 @@ uint32_t ReplicationManager::replicate( InputByteStream &ibstream )
                 pGameObj = ObjectCreationRegistry::getInstance()->createObject( header.m_classId );
                 objectId = m_pGameObjectMgr->addGameObject( pGameObj );
             }
-            pGameObj->read( ibstream );
+            if( pGameObj == nullptr )
+            {
+                LOG::getInstance()->printLOG( "DEBUG" , "ReplicationManager.cpp" , "class_id = " + to_string(header.m_classId) );
+            }
+            else
+                pGameObj->read( ibstream );
 
             break;
         }    

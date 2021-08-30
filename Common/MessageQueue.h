@@ -4,6 +4,7 @@
 #include <memory>
 #include <queue>
 #include <stdexcept>
+#include <mutex>
 #include "InputByteStream.h"
 
 
@@ -17,7 +18,7 @@ public:
 };
 
 class MessageQueue {
-
+	mutex m_mutex;
 	std::queue<unique_ptr<InputByteStream>> queue;
 
 public:

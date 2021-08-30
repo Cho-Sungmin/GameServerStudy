@@ -1,11 +1,29 @@
+
 #include "Server.h"
 #include "Debug.h"
 
 using namespace std;
 
-void Server::init_listenSocket( int protocol )
+void Server::setSocketToNonBlocking( int socket )
+{
+    int flag = fcntl( socket , F_GETFL );
+    flag |= O_NONBLOCK;
+    fcntl( socket , F_SETFL , flag );
+}
+
+bool Server::isNonBlock( int socket )
+{ 
+    int flag = fcntl( socket , F_GETFL );
+    return flag == O_NONBLOCK ? true : false;
+}
+
+void Server::init_listenSocket( int protocol , int mode )
 {
     m_listenSocket = socket( AF_INET , protocol , 0 );
+    assert( m_listenSocket != -1 );
+
+    if( mode == O_NONBLOCK )
+        setSocketToNonBlocking( m_listenSocket );
 }
 
 void Server::init_addr( const char* port ) 
@@ -59,7 +77,7 @@ void Server::init( const char *port )
     init_listenSocket( SOCK_STREAM );
 }   
 
-bool Server::ready()
+bool Server::ready()    // after init
 {
     if( bind() && listen() )
         return true;

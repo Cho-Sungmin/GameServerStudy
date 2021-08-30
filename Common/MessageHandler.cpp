@@ -2,7 +2,7 @@
 
 void MessageHandler::acceptHandler( SessionManager &sessionMgr , int clntSocket , const string &welcomeMSG )
 {
-    m_obstream->flush();
+    OutputByteStream obstream( TCP::MPS );
 
     try {
         //--- Set a new session ---//
@@ -12,32 +12,30 @@ void MessageHandler::acceptHandler( SessionManager &sessionMgr , int clntSocket 
         sessionMgr.validate( clntSocket );
 
         //--- Enqueue welcome MSG ---//
-        m_obstream->write( welcomeMSG );
-        Header header( PACKET_TYPE::NOTI , FUNCTION_CODE::NOTI_WELCOME , m_obstream->getLength() , clntSocket );
-        header.insert_front( *m_obstream );
+        obstream.write( welcomeMSG );
+        Header header( PACKET_TYPE::NOTI , FUNCTION_CODE::NOTI_WELCOME , obstream.getLength() , clntSocket );
+        header.insert_front( obstream );
 
-        m_msgQ.enqueue( new InputByteStream( *m_obstream ) );
-
-        
+        m_msgQ.enqueue( new InputByteStream( obstream ) );
     }
-    catch( Not_Found_Ex e )
+    catch( Not_Found_Ex &e )
     {}
 
-    m_obstream->flush();
 }
 
 void MessageHandler::inputHandler( int clntSocket )
 {
-    m_obstream->flush();
-    m_ibstream->reUse();
+    OutputByteStream obstream( TCP::MPS );
+    InputByteStream ibstream( TCP::MPS );
+
     try {
         //--- Verify user informations ---//
-        TCP::recv_packet( clntSocket , *m_obstream );
+        TCP::recv_packet( clntSocket , obstream );
         
-        *m_ibstream = *m_obstream;
+        ibstream = obstream;
 
-        LOG::getInstance()->writeLOG( *m_ibstream , LOG::TYPE::RECV );
-        Header header; header.read( *m_ibstream );
+        LOG::getInstance()->writeLOG( ibstream , LOG::TYPE::RECV );
+        Header header; header.read( ibstream );
 
         switch( header.type )
         {
@@ -46,59 +44,53 @@ void MessageHandler::inputHandler( int clntSocket )
                 break;
             case PACKET_TYPE::REQ : //--- TYPE : REQ ---//
             {
-                onRequest();
+                onRequest( obstream );
                 break;
             }
             case PACKET_TYPE::RES : //--- TYPE : RES ---//
                 break;
             case PACKET_TYPE::NOTI : //--- TYPE : NOTI ---//
-                onNotification();
+                onNotification( obstream );
                 break;
             case PACKET_TYPE::MSG : //--- TYPE : MSG ---//
-                onChatMessage();
+                onChatMessage( obstream );
             default :
                 break;
         }
-
-        m_ibstream->reUse();
     }
-    catch( TCP::Connection_Ex e )
+    catch( TCP::TCP_Ex &e )
     {
-        m_obstream->flush();
-        throw e;  
+        throw;  
     }
-    catch( TCP::NoData_Ex e )
-    {
-        m_obstream->flush();
-        throw e;
-    }
-    m_obstream->flush();
 }
 void MessageHandler::invalidHandler()
 {
     cout << "Captured invalid type of packet" << endl;
 }
 
-void MessageHandler::onNotification()
+void MessageHandler::onNotification( OutputByteStream &obstream )
 {
-    m_msgQ.enqueue( new InputByteStream( *m_obstream ) );
+    m_msgQ.enqueue( new InputByteStream( obstream ) );
 }
 
-void MessageHandler::onChatMessage()
+void MessageHandler::onChatMessage( OutputByteStream &obstream )
 {
-    m_msgQ.enqueue( new InputByteStream( *m_obstream ) );
+    m_msgQ.enqueue( new InputByteStream( obstream ) );
 }
 
-void MessageHandler::onRequest()
+void MessageHandler::onRequest( OutputByteStream &obstream )
 {
-    m_msgQ.enqueue( new InputByteStream( *m_obstream ) );
+    m_msgQ.enqueue( new InputByteStream( obstream ) );
 }
 
 void MessageHandler::onHeartbeat(){}
 
 void MessageHandler::bye( void **in , void **out )
 {
-   throw TCP::Connection_Ex();
+    InputByteStream *pIbstream = static_cast<InputByteStream*>(out[0]);
+    Header header; header.read( *pIbstream );
+
+    throw TCP::Connection_Ex( header.sessionId );
 }
 
 void MessageHandler::registerHandler( map<int , function<void(void**,void**)>> &h_map ) {

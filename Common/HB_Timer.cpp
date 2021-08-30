@@ -19,25 +19,31 @@ void HB_Timer::handler( int signo , siginfo_t* info , void* uc )
 		}	
 	}
 	else {
-
-		//--- Create and send dummy packet ---//
-		Header header( PACKET_TYPE::HB , FUNCTION_CODE::ANY , 0 , dest_fd );
-		OutputByteStream dummy( Header::SIZE );
-		header.write( dummy );
-		
-		InputByteStream packet( dummy );
-		dummy.close();
-
-		try {
-			TCP::send_packet( dest_fd , packet );
-			//LOG::getInstance()->writeLOG( packet , LOG::TYPE::SEND );
-		}
-		catch( TCP::Connection_Ex e )
-		{
-			pTimer->m_timeout = 4;
-		}
-
-		pTimer->m_timeout++;
-		packet.close();
+			JobQueue::getInstance()->enqueue( [pTimer,dest_fd]{ pTimer->sendHeartBeat( dest_fd ); } );
+		//else
+			//pTimer->sendHeartBeat( dest_fd );
 	}
+}
+
+void HB_Timer::sendHeartBeat( int dest_fd )
+{
+	//--- Create and send dummy packet ---//
+	Header header( PACKET_TYPE::HB , FUNCTION_CODE::ANY , 0 , dest_fd );
+	OutputByteStream dummy( Header::SIZE );
+	header.write( dummy );
+	
+	InputByteStream packet( dummy );
+	dummy.close();
+
+	try {
+		TCP::send_packet( dest_fd , packet );
+		//LOG::getInstance()->writeLOG( packet , LOG::TYPE::SEND );
+	}
+	catch( TCP::Connection_Ex &e )
+	{
+		m_timeout = 4;
+	}
+
+	m_timeout++;
+	packet.close();
 }

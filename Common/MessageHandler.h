@@ -15,15 +15,12 @@ using namespace std;
 
 class MessageHandler {
 	MessageQueue &m_msgQ;
-protected:
-	unique_ptr<InputByteStream> m_ibstream;
-	unique_ptr<OutputByteStream> m_obstream;
 
 public:
 	//--- Constructor ---//
 	MessageHandler() = default;
 	MessageHandler( MessageQueue &queue )
-					: 	m_msgQ( queue ) , m_ibstream(make_unique<InputByteStream>(TCP::MPS)) , m_obstream(make_unique<OutputByteStream>(TCP::MPS))
+					: 	m_msgQ( queue )
 	{
 		// init something //
 	}
@@ -35,9 +32,9 @@ public:
 	void inputHandler( int clntSocket );
 	void invalidHandler();
 	void onHeartbeat();
-	void onRequest();
-	void onNotification();
-	void onChatMessage();
+	void onRequest(OutputByteStream &obstream);
+	void onNotification(OutputByteStream &obstream);
+	void onChatMessage(OutputByteStream &obstream);
 
 	void bye( void **in , void **out );
 	

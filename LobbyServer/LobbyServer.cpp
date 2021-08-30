@@ -8,11 +8,25 @@ void LobbyServer::initDB()
         m_pRedis->connect();
         m_pRedis->cleanAll();
     }
-    catch( RedisException::Connection_Ex e )
+    catch( RedisException::Connection_Ex &e )
     {
         // TODO : Reconnection routine //
         std::cout << "Process terminate" << std::endl;
     }
+}
+
+void LobbyServer::processMSG()
+{
+    void *pParams[1] = { &m_sessionMgr };
+	
+    try{
+    	m_msgProc.processMSG( pParams );
+	}
+	catch( TCP::Connection_Ex &e )
+	{
+		m_sessionMgr.expired( e.fd );	
+		farewell( e.fd );
+	}
 }
 
 void LobbyServer::handler( int event , int clntSocket )
@@ -28,24 +42,17 @@ void LobbyServer::handler( int event , int clntSocket )
 			case ACCEPT :	// Connection
 
 				m_msgHandler.acceptHandler( m_sessionMgr , clntSocket , string( "GameServer" ) );
-				m_msgProc.processMSG();
+				m_pJobQueue->enqueue( [this]{ processMSG(); } ); 
 				break;
 
 			case INPUT :	// Got messages
 
 				try {
-					//void *pParams[2] = { &m_sessionMgr , &m_roomList };
-					void *pParams[1] = { &m_sessionMgr };
 					m_msgHandler.inputHandler( clntSocket );
-					m_msgProc.processMSG( pParams );
 					m_sessionMgr.refresh( clntSocket );	// Reset timer
+					m_pJobQueue->enqueue( [this]{ processMSG(); } ); 
 				}
-				catch( TCP::NoData_Ex e )
-				{
-					m_sessionMgr.expired( clntSocket );
-					farewell( clntSocket );
-				}
-				catch( TCP::Connection_Ex e )
+				catch( TCP::TCP_Ex &e )
 				{
 					//--- Set free ---//
 					m_sessionMgr.expired( clntSocket );
@@ -73,7 +80,7 @@ void LobbyServer::handler( int event , int clntSocket )
 						}
 					}
 				}
-				catch( Not_Found_Ex e ) { 
+				catch( Not_Found_Ex &e ) { 
 				}
 				break;
 			}

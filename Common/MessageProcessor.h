@@ -12,8 +12,6 @@
 using namespace std;
 
 class MessageProcessor {
-
-	unique_ptr<InputByteStream> m_ibstream;
 	MessageQueue &m_msgQ;
 	map<int , function<void(void**,void**)>> m_hMap;
 	
@@ -34,14 +32,17 @@ public:
 	
 	void processMSG( void **inParams=nullptr , void **outParams=nullptr )
 	{
+		unique_ptr<InputByteStream> ibstream;
 		Header header;
+		SessionManager *pSessionMgr = static_cast<SessionManager*>(inParams[0]);
+		list<RoomManager> *pRoomList = static_cast<list<RoomManager>*>(inParams[1]);
 
 		try {	
-			m_msgQ.dequeue( m_ibstream );
-			header.read( *m_ibstream );
-			m_ibstream->reUse();
+			m_msgQ.dequeue( ibstream );
+			header.read( *ibstream );
+			ibstream->reUse();
 
-			void *outparameters[] = { m_ibstream.get() };
+			void *outparameters[] = { ibstream.get() };
 			void **inparameters = inParams;
 
 			auto itr = m_hMap.find( header.func );
@@ -51,21 +52,22 @@ public:
 			}
 
 			//--- 요청에 대한 응답이 있는 경우 ---//
-			if( m_ibstream->getRemainLength() > 0 )
+			if( ibstream->getRemainLength() > 0 )
 			{
-				TCP::send_packet( header.sessionId , *m_ibstream );
-				LOG::getInstance()->writeLOG( *m_ibstream , LOG::TYPE::SEND );		
+				TCP::send_packet( header.sessionId , *ibstream );
+				LOG::getInstance()->writeLOG( *ibstream , LOG::TYPE::SEND );			
 			}
-			m_ibstream->reUse();
 		}
-		catch( Empty_Ex e ) {
+		catch( Empty_Ex &e ) {
 		}
-		catch( TCP::Transmission_Ex e ) {
-			m_ibstream->reUse();
+		catch( TCP::Transmission_Ex &e ) {
 		}
-		catch( TCP::Connection_Ex e ) {
-			m_ibstream->reUse();
-			throw e;
+		catch( TCP::TCP_Ex &e )
+		{
+			throw;
+		}
+		catch( out_of_range &e )
+		{
 		}
 
 	}

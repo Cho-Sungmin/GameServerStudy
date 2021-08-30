@@ -88,14 +88,9 @@ void LOG::writeLOG( InputByteStream& packet , int type )
 
     if( m_file.is_open() )
     {
-       // m_mutex.lock();
-
         //--- write log ---//
         m_file << logStream.str();
         m_file.flush();
-
-
-       // m_mutex.unlock();
     }
     else
         printLOG( "FILE" , "ERROR" , "Failed to open log file" );

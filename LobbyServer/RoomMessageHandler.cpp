@@ -8,6 +8,8 @@ void RoomMessageHandler::resEnterRoom( void **inParams , void **outParams )
 {
     SessionManager *pSessionMgr = static_cast<SessionManager*>( inParams[0] );
     InputByteStream *pPacket = static_cast<InputByteStream*>( outParams[0] );	
+    OutputByteStream obstream( TCP::MPS );
+    InputByteStream ibstream( TCP::MPS );
     Header header; header.read( *pPacket );
 
     try{
@@ -21,11 +23,10 @@ void RoomMessageHandler::resEnterRoom( void **inParams , void **outParams )
         UserRedis::getInstance()->hmgetUserInfo( userInfo );
 
         //--- Set response packet ---//
-        m_obstream->flush();
-        userInfo.write( *m_obstream );
+        userInfo.write( obstream );
 
         header.type = PACKET_TYPE::RES;
-        header.len = m_obstream->getLength();
+        header.len = obstream.getLength();
         
         //--- CASE : The request is VALID ---//
         //--- Update session data ---//
@@ -45,14 +46,15 @@ void RoomMessageHandler::resEnterRoom( void **inParams , void **outParams )
         header.len= 0;
     }
 
-    header.insert_front( *m_obstream );
-    *pPacket = *m_obstream;
-    m_obstream->flush();
+    header.insert_front( obstream );
+    *pPacket = obstream;
 }
 
 void RoomMessageHandler::resRoomList( void **inParams , void **outParams )
 {
     InputByteStream *pPacket = static_cast<InputByteStream*>( outParams[0] );
+    OutputByteStream obstream( TCP::MPS );
+    InputByteStream ibstream( TCP::MPS );
 
     Header header; header.read( *pPacket );
     header.type = PACKET_TYPE::RES;
@@ -64,13 +66,11 @@ void RoomMessageHandler::resRoomList( void **inParams , void **outParams )
         //--- CASE : The request is VALID ---//
         //--- Set response packet ---//
 
-        m_obstream->flush();
-
         for( auto room : result )
         {
-            room.write( *m_obstream );
+            room.write( obstream );
         }
-        header.len = m_obstream->getLength();
+        header.len = obstream.getLength();
         header.func = FUNCTION_CODE::RES_ROOM_LIST_SUCCESS;
     }
     catch( UserRedisException e )
@@ -80,14 +80,15 @@ void RoomMessageHandler::resRoomList( void **inParams , void **outParams )
         header.len = 0;
     }
 
-    header.insert_front( *m_obstream );
-    *pPacket = *m_obstream;
-    m_obstream->flush();
+    header.insert_front( obstream );
+    *pPacket = obstream;
 }
 
 void RoomMessageHandler::resMakeRoom( void **inParams , void **outParams )
 {
     InputByteStream *pPacket = static_cast<InputByteStream*>( outParams[0] );
+    OutputByteStream obstream( TCP::MPS );
+    InputByteStream ibstream( TCP::MPS );
     Header header; header.read( *pPacket );
     header.type = PACKET_TYPE::RES;
     Room room; room.read( *pPacket );
@@ -99,15 +100,14 @@ void RoomMessageHandler::resMakeRoom( void **inParams , void **outParams )
         pInstance->lpushRoomList( room );
 
         //--- Set response packet ---//
-        m_obstream->flush();
-        room.write( *m_obstream );
+        room.write( obstream );
 
         //--- CASE : The request is valid ---//
         //--- Add new room in the list ---//
         //pRoomList->emplace_back(room);
 
         header.func = FUNCTION_CODE::RES_MAKE_ROOM_SUCCESS;
-        header.len = m_obstream->getLength();
+        header.len = obstream.getLength();
     }
     catch( UserRedisException e )
     {
@@ -116,10 +116,8 @@ void RoomMessageHandler::resMakeRoom( void **inParams , void **outParams )
         header.len = 0;
     }
 
-    header.insert_front( *m_obstream );
-    *pPacket = *m_obstream;
-    m_obstream->flush();
-
+    header.insert_front( obstream );
+    *pPacket = obstream;
 }
 
 
