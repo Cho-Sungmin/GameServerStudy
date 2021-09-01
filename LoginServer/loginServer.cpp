@@ -13,30 +13,29 @@ LOG *LOG::m_pInstance;
 
 int main()
 {
-	signal( SIGPIPE , SIG_IGN );
-	LOG *pLog = LOG::getInstance( "LoginServer" );
-	ServerAdaptor<LoginServer> server( O_NONBLOCK );
+	signal(SIGPIPE, SIG_IGN);
+	LOG *pLog = LOG::getInstance("LoginServer");
+	ServerAdaptor<LoginServer> server(O_NONBLOCK);
 	string cmd = "";
-	
+
 	//--- Server work ---//
 	server.init("1091");
-	
-	while( true )
+
+	while (true)
 	{
 		cin >> cmd;
 
-		if( cin.fail() )
+		if (cin.fail())
 		{
-			cin.ignore(100,'\n');
+			cin.ignore(100, '\n');
 			cin.clear();
 		}
-		else if( cmd == "quit" )
+		else if (cmd == "quit")
 			break;
 	}
 
-	if( pLog != nullptr)
-		delete(pLog);
-	
+	if (pLog != nullptr)
+		delete (pLog);
+
 	return 0;
 }
-	

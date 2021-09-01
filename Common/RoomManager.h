@@ -55,6 +55,9 @@ public:
         return m_sessionMgr.getSessionList();
     }
 
+    list<GameObject*> &getInvalidObjects()
+    { return m_replicationMgr.getInvalidObjects(); }
+
     list<GameObject*> getGameObjects()
     { return m_gameObjectMgr.getGameObjectAll(); }
 
