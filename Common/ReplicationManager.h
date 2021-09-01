@@ -9,6 +9,7 @@
 
 class ReplicationManager {
     GameObjectManager *m_pGameObjectMgr;
+    list<GameObject*> m_invalidObjects;
 public:
     ReplicationManager( GameObjectManager *pGoMgr )
     {
@@ -28,6 +29,9 @@ public:
 
     //--- From hosts ---//
     uint32_t replicate( InputByteStream &ibstream );
+
+    list<GameObject*> &getInvalidObjects() { return m_invalidObjects; }
+    GameObjectManager &getGameObjectMgr() { return *m_pGameObjectMgr; }
 };
 
 
