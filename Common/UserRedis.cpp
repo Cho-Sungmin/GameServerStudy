@@ -48,7 +48,7 @@ const string UserRedis::hmgetCommand( const string &key , list<string> &fields )
 
     string result = "";
     
-    redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
+    redisReply *pReply = static_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
     
     if( m_pContext->err != 0 )
     {
@@ -66,12 +66,15 @@ const string UserRedis::hmgetCommand( const string &key , list<string> &fields )
     else
     {
         string tmp_str = "";
-
+        
         for( int i=0; i<pReply->elements; i++)
         {
-            tmp_str = pReply->element[i]->str;
-            result += tmp_str;
-            result += ",";
+            if( pReply->element[i]->len > 0 )
+            {
+                tmp_str = pReply->element[i]->str;
+                result += tmp_str;
+                result += ",";
+            }
         }
 
         LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : " + result );
@@ -94,7 +97,7 @@ void UserRedis::hmsetCommand( const string &key , list<string> &fields )
         cmd += field;
     }
 
-    redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
+    redisReply *pReply = static_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
     
     if ( pReply->type == REDIS_REPLY_ERROR ) 
     {
@@ -110,6 +113,33 @@ void UserRedis::hmsetCommand( const string &key , list<string> &fields )
 
     freeReplyObject(pReply);
 }
+
+void UserRedis::lsetCommand( const string &key , int index , const string &value )
+{
+    string cmd = "LSET " + key + " " + std::to_string(index) + " " + value;
+    redisReply *pReply = static_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
+
+    if( m_pContext->err != 0 )
+    {
+        LOG::getInstance()->printLOG( "REDIS" , "ERROR" , cmd + " : " + m_pContext->errstr );
+        LOG::getInstance()->writeLOG( "REDIS" , "ERROR" , cmd + " : " + m_pContext->errstr );
+        throw UserRedisException( cmd );
+    }
+    if ( pReply->type == REDIS_REPLY_ERROR ) 
+    {
+        LOG::getInstance()->printLOG( "REDIS" , "ERROR" , cmd + " : " + pReply->str );
+        LOG::getInstance()->writeLOG( "REDIS" , "ERROR" , cmd + " : " + pReply->str );
+        throw UserRedisException( cmd );
+    }
+    else
+    {
+        LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : success" );
+        LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : success" );
+    }
+
+    freeReplyObject(pReply);
+
+}
     
 const list<string> UserRedis::lrangeCommand( const string &key , const string &begin , const string &end )
 {
@@ -118,7 +148,7 @@ const list<string> UserRedis::lrangeCommand( const string &key , const string &b
     list<string> results;
     string cmd = "LRANGE " + key + " " + begin + " " + end;
 
-    redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
+    redisReply *pReply = static_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
 
     if( m_pContext->err != 0 )
     {
@@ -160,7 +190,7 @@ void UserRedis::lpushCommand( const string &key , list<string> &values )
     }
     cmd += "}";
 
-    redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
+    redisReply *pReply = static_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
 
     string result;
 
@@ -190,7 +220,7 @@ void UserRedis::lpopCommand( const string &key )
 
     string cmd = "LPOP " + key;
 
-    redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
+    redisReply *pReply = static_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
 
     if( m_pContext->err != 0 )
     {
@@ -210,6 +240,30 @@ void UserRedis::lpopCommand( const string &key )
         LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + pReply->str + " success" );
     }
 
+}
+
+void UserRedis::lsetRoom( const Room &room , int index )
+{
+    list<string> values = { "id:" + room.roomId , "capacity:" + to_string(room.capacity) , "presentMembers:" + to_string(room.presentMembers) , "title:" + room.title };
+    string value = "{";
+
+    while( !values.empty() )
+    {
+        value += values.front() + ",";
+        values.pop_front();
+    }
+    value += '}';
+
+    values.push_back( value );
+    const string key = "room_list";
+
+     try {
+        lsetCommand( key , index , value );
+    }
+    catch( UserRedisException e )
+    {
+        throw e;
+    }
 }
 
 void UserRedis::lpushRoomList( const Room &room )
@@ -380,7 +434,7 @@ void UserRedis::hmgetUserInfo( UserInfo &userInfo )
 void UserRedis::cleanAll()
 {
     list<string> keys;
-    redisReply *pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , "SCAN 0" ));
+    redisReply *pReply = static_cast<redisReply*>(redisCommand( m_pContext , "SCAN 0" ));
 
     for( int i=0; i< pReply->element[1]->elements; i++ )
     {
@@ -395,7 +449,7 @@ void UserRedis::cleanAll()
         cmd += ' ';
     }
 
-    pReply = reinterpret_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
+    pReply = static_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
     freeReplyObject(pReply);
 }
 

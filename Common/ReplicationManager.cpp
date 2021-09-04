@@ -75,7 +75,6 @@ uint32_t ReplicationManager::replicate( InputByteStream &ibstream )
             objectId = header.m_objectId;
             GameObject *pGameObj = m_pGameObjectMgr->getGameObject( objectId );
             m_invalidObjects.push_back(pGameObj);
-            //m_pGameObjectMgr->removeGameObject( pGameObj );
             break;
         }     
     }

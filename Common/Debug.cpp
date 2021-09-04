@@ -204,6 +204,9 @@ const string LOG::getFuncString( int16_t func )
     case FUNCTION_CODE::REQ_JOIN_GAME :
         type_str = "REQ_JOIN_GAME";
         break;
+    case FUNCTION_CODE::REQ_QUIT_GAME :
+        type_str = "REQ_QUIT_GAME";
+        break;
     case FUNCTION_CODE::REQ_REPLICATION :
         type_str = "REQ_REPLICATION";
         break;
@@ -225,6 +228,9 @@ const string LOG::getFuncString( int16_t func )
     case FUNCTION_CODE::RES_JOIN_GAME_SUCCESS :
         type_str = "RES_JOIN_GAME_SUCCESS";
         break;
+    case FUNCTION_CODE::RES_QUIT_GAME_SUCCESS :
+        type_str = "RES_QUIT_GAME_SUCCESS";
+        break;
     case FUNCTION_CODE::RES_VERIFY_FAIL :
         type_str = "RES_VERIFY_FAIL";
         break;
@@ -242,6 +248,9 @@ const string LOG::getFuncString( int16_t func )
         break;  
     case FUNCTION_CODE::RES_JOIN_GAME_FAIL :
         type_str = "RES_JOIN_GAME_FAIL";
+        break;
+    case FUNCTION_CODE::RES_QUIT_GAME_FAIL :
+        type_str = "RES_QUIT_GAME_FAIL";
         break;
     case FUNCTION_CODE::NOTI_WELCOME :
         type_str = "NOTI_WELCOME";

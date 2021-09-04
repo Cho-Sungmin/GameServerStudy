@@ -15,7 +15,7 @@ protected:
     char* buffer = nullptr;
 
 public:
-    ~ByteStream()
+    virtual ~ByteStream()
     {
         close();
     }

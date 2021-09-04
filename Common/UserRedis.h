@@ -45,6 +45,7 @@ public:
     void connect();
     void disconnect();
 
+    void lsetCommand( const string &key , int index , const string &value );
     const list<string> lrangeCommand( const string &key , const string &begin , const string &end );
     const string hmgetCommand( const string &key , list<string> &fields );
     void hmsetCommand( const string &key , list<string> &fields );
@@ -56,6 +57,7 @@ public:
     void hmgetUserInfo( UserInfo &userInfo );
     void hmsetNewRoom( const Room &room );
     void hmgetRoom( Room &room );
+    void lsetRoom( const Room &room , int index );
     void lpushRoomList( const Room &room );
     void getElement( string &element );
     void cleanAll();
