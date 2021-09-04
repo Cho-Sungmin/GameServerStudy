@@ -20,5 +20,8 @@ void MessageQueue::dequeue( unique_ptr<InputByteStream> &data )
 		data = std::move(queue.front());
 		queue.pop();
 	}else
+	{
 		throw Empty_Ex();
+	}
+
 }

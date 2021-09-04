@@ -71,8 +71,8 @@ void GameMessageHandler::resJoinGame(void **inParams, void **outParams)
         //--- InMemory에 없을 경우 신규 방으로 판단하여 List에 추가 ---//
         if (pTargetRoom == nullptr)
         {
-            pRoomList->emplace_back(room);
-            pTargetRoom = &pRoomList->back();
+            pRoomList->emplace_front(room);
+            pTargetRoom = &pRoomList->front();
         }
 
         //--- LobbySession에서 GameSession으로 전환 후, 기존 LobbySession 해제 ---//
@@ -94,6 +94,20 @@ void GameMessageHandler::resJoinGame(void **inParams, void **outParams)
         {
             cout << "resJoin" << endl;
         }
+        
+        //--- 현재원 갱신 ---//
+        room.presentMembers++;
+        list<string> fields = { "presentMembers " + std::to_string(room.presentMembers) };
+        pInstance->hmsetCommand( room.roomId , fields );
+
+        int index = 0;
+        for( auto &roomMgr : *pRoomList )
+        {
+            if( roomMgr.isEqual(room.roomId) )
+                break;
+            index++;
+        }
+        pInstance->lsetRoom( room , index );
     }
     header.type = PACKET_TYPE::RES;
 
@@ -116,6 +130,91 @@ void GameMessageHandler::resJoinGame(void **inParams, void **outParams)
     {
         //--- GameSession 전환 실패 처리 ---//
         header.func = FUNCTION_CODE::RES_JOIN_GAME_FAIL;
+        header.len = 0;
+    }
+
+    header.insert_front(obstream);
+    *pPacket = obstream;
+}
+
+void GameMessageHandler::resQuitGame(void **inParams, void **outParams)
+{
+    SessionManager *pSessionMgr = static_cast<SessionManager *>(inParams[0]);
+    list<RoomManager> *pRoomList = static_cast<list<RoomManager> *>(inParams[1]);
+    InputByteStream *pPacket = static_cast<InputByteStream *>(outParams[0]);
+    OutputByteStream obstream(TCP::MPS);
+    InputByteStream ibstream(TCP::MPS);
+    Header header;
+    header.read(*pPacket);
+
+    //--- Extract room id from message ---//
+    string roomId;
+    pPacket->read(roomId);
+
+    //--- Extract user id from message ---//
+    string userId;
+    pPacket->read(userId);
+
+    UserInfo userInfo;
+    userInfo.setId(userId);
+
+    UserRedis *pInstance = UserRedis::getInstance();
+
+    try
+    {
+        pInstance->hmgetUserInfo(userInfo);
+    }
+    catch (UserRedisException &e)
+    {
+    }
+
+    //--- Redis에서 존재하는 방 정보 확인 ---//
+    Room room(roomId);
+    pInstance->hmgetRoom(room);
+
+    bool result = false;
+    RoomManager *pTargetRoom = nullptr;
+
+    //--- 방 정보 재확인 후, 수신자의 방을 특정하여 참조 ---//
+    if (room.roomId == roomId)
+    {
+        for (auto &room : *pRoomList)
+        {
+            if (room.isEqual(roomId))
+            {
+                pTargetRoom = &room;
+                break;
+            }
+        }
+        
+        //--- 현재원 갱신 ---//
+        room.presentMembers--;
+        list<string> fields = { "presentMembers " + std::to_string(room.presentMembers) };
+        pInstance->hmsetCommand( room.roomId , fields );
+        
+        int index = 0;
+        for( auto &roomMgr : *pRoomList )
+        {
+            if( roomMgr.isEqual(room.roomId) )
+                break;
+            index++;
+        }
+        pInstance->lsetRoom( room , index );
+
+        result = true;
+    }
+    header.type = PACKET_TYPE::RES;
+
+    //--- Replication 정보가 담긴 응답메시지 생성
+    if (result)
+    {
+        header.func = FUNCTION_CODE::RES_QUIT_GAME_SUCCESS;
+        header.len = obstream.getLength();
+    }
+    else
+    {
+        //--- GameSession 전환 실패 처리 ---//
+        header.func = FUNCTION_CODE::RES_QUIT_GAME_FAIL;
         header.len = 0;
     }
 
@@ -192,6 +291,11 @@ void GameMessageHandler::registerHandler(map<int, function<void(void **, void **
                            {
                                this->resJoinGame(in, out);
                            }));
+    h_map.insert(make_pair((int)FUNCTION_CODE::REQ_QUIT_GAME,
+                           [this](void **in, void **out)
+                           {
+                               this->resQuitGame(in, out);
+                           }));
     h_map.insert(make_pair((int)FUNCTION_CODE::NOTI_REPLICATION,
                            [this](void **in, void **out)
                            {
@@ -207,5 +311,5 @@ void GameMessageHandler::registerHandler(map<int, function<void(void **, void **
                            {
                                this->bye(in, out);
                            }));
-    //h_map[VERIFY] = [this](void* l,void* r) {this->verifyUserInfo(l,r);};
+
 }

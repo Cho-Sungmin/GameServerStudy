@@ -33,7 +33,7 @@ public:
         m_msgProc.registerProcedure(m_msgHandler);
     }
 
-    GameServer() : m_userDB(m_pRedis), m_msgHandler(m_msgQ), m_msgProc(m_msgQ)
+    GameServer() : EpollServer(), m_userDB(m_pRedis), m_msgHandler(m_msgQ), m_msgProc(m_msgQ)
     {
         m_msgProc.registerProcedure(m_msgHandler);
     }

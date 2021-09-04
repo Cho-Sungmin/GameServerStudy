@@ -35,7 +35,7 @@ public:
 
 		m_event.sigev_notify = SIGEV_SIGNAL;
 		m_event.sigev_signo = SIGRTMIN + 1;
-		m_event.sigev_value.sival_ptr = reinterpret_cast<void *>(this);
+		m_event.sigev_value.sival_ptr = static_cast<void *>(this);
 	}
 
 	~ReplicationTimer()
@@ -61,15 +61,12 @@ void ReplicationTimer::handler(int signo, siginfo_t *pInfo, void *uc)
 										 { pRepTimer->sendReplicationReq(obj, Action::UPDATE); });
 	}
 
-	int n = invalidObjects.size();
-
-	for (int i = 0; i < n; ++i)
+	while( !invalidObjects.empty() )
 	{
 		GameObject *obj = invalidObjects.front();
 		JobQueue::getInstance()->enqueue([pRepTimer, obj]
 										 { pRepTimer->sendReplicationReq(obj, Action::DESTROY); });
 		invalidObjects.pop_front();
-		n--;
 	}
 }
 
@@ -84,11 +81,9 @@ void ReplicationTimer::sendReplicationReq(GameObject *pObj, Action action)
 		m_roomMgr.m_replicationMgr.replicateUpdate(obstream, pObj);
 		break;
 	case Action::DESTROY:
-	{
 		m_roomMgr.m_replicationMgr.replicateDestroy(obstream, pObj);
 		m_roomMgr.m_replicationMgr.getGameObjectMgr().removeGameObject(pObj);
 		break;
-	}
 	case Action::CREATE:
 		m_roomMgr.m_replicationMgr.replicateCreate(obstream, pObj);
 		break;
@@ -115,6 +110,7 @@ void ReplicationTimer::sendReplicationReq(GameObject *pObj, Action action)
 	{
 		asleep();
 	};
+	
 }
 
 #endif

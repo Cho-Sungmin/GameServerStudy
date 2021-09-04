@@ -25,10 +25,17 @@ void TCP::send_packet( int dest_fd , InputByteStream &packet , bool isSupportMul
                 usleep(2000);
                 continue;
             }
-            throw TCP::Connection_Ex( dest_fd );
+            else
+            {
+                if( isSupportMultiThreading )
+                    key.unlock();
+                throw TCP::Connection_Ex( dest_fd );
+            }
         }
         else if( len == 0 )
         {
+            if( isSupportMultiThreading )
+                key.unlock();
             throw TCP::NoData_Ex( dest_fd );
         }
         offset += len;
@@ -37,6 +44,8 @@ void TCP::send_packet( int dest_fd , InputByteStream &packet , bool isSupportMul
 
     if( head_len != 0 )
     {
+        if( isSupportMultiThreading )
+            key.unlock();
         throw TCP::Transmission_Ex( dest_fd );
     } 
 
@@ -61,10 +70,14 @@ void TCP::send_packet( int dest_fd , InputByteStream &packet , bool isSupportMul
                 usleep(2000);
                 continue;
             }
-            throw TCP::Connection_Ex( dest_fd );
+            if( isSupportMultiThreading )
+                    key.unlock();
+                throw TCP::Connection_Ex( dest_fd );
         }
         else if( len == 0 )
         {
+            if( isSupportMultiThreading )
+                key.unlock();
             throw TCP::NoData_Ex( dest_fd );
         }
 
@@ -105,10 +118,14 @@ void TCP::recv_packet( int src_fd , OutputByteStream &packet , bool isSupportMul
                 usleep(2000);
                 continue;
             }
+            if( isSupportMultiThreading )
+                key.unlock();
             throw TCP::Connection_Ex( src_fd );
         }
         else if( len == 0 )
         {
+            if( isSupportMultiThreading )
+                key.unlock();
             throw TCP::NoData_Ex( src_fd );
         }
 
@@ -119,6 +136,8 @@ void TCP::recv_packet( int src_fd , OutputByteStream &packet , bool isSupportMul
     //--- CASE : Header of packet is dropped ---//
     if( head_len != 0 )
     {
+        if( isSupportMultiThreading )
+            key.unlock();
         throw TCP::Transmission_Ex( src_fd );
     }
     else
@@ -146,10 +165,14 @@ void TCP::recv_packet( int src_fd , OutputByteStream &packet , bool isSupportMul
                 //LOG::getInstance()->printLOG( "TCP" , "WARN" , "EAGAIN" );
                 continue;
             }
+            if( isSupportMultiThreading )
+                key.unlock();
             throw TCP::Connection_Ex( src_fd );
         }
         else if( len == 0 )
         {
+            if( isSupportMultiThreading )
+                key.unlock();
             throw TCP::NoData_Ex( src_fd );
         }
 

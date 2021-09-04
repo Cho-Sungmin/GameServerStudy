@@ -14,23 +14,20 @@ JobQueue *JobQueue::getInstance()
 void JobQueue::enqueue( const std::function<void()> &job )
 {
     {
-        //std::lock_guard<std::mutex> key( m_mutex );
+        std::lock_guard<std::mutex> key( m_mutex );
         m_queue.push( job );
     }
-
+    
     m_conditionVar.notify_one();
 }
 
 void JobQueue::dequeue( std::function<void()> &job )
 {
+    if( !m_queue.empty() )
     {
         std::lock_guard<std::mutex> key( m_mutex );
-
-        if( !m_queue.empty() )
-        {
-            job = m_queue.front();
-            m_queue.pop();
-        }
+        job = m_queue.front();
+        m_queue.pop();
     }
 }
 
