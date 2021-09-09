@@ -32,7 +32,10 @@ string LOG::getCurrentDate()
 
     return buf;
 }
-
+#ifndef __DEBUG__
+void LOG::printLOG( InputByteStream& packet , int type ) { }
+void LOG::writeLOG( InputByteStream& packet , int type ) { }
+#else
 //--- TCP ---//
 void LOG::printLOG( InputByteStream& packet , int type )
 {
@@ -58,7 +61,6 @@ void LOG::printLOG( InputByteStream& packet , int type )
     cout << log_str << '\n';
     cout.flush();
 }
-
 void LOG::writeLOG( InputByteStream& packet , int type )
 {
     string type_str( 3 , ' ' );
@@ -96,7 +98,7 @@ void LOG::writeLOG( InputByteStream& packet , int type )
         printLOG( "FILE" , "ERROR" , "Failed to open log file" );
 
 }
-
+#endif
 string LOG::getHeaderString( const Header& header )
 {
     const string type_str = getTypeString( header.type );
@@ -289,7 +291,10 @@ const string LOG::getFuncString( int16_t func )
 
     return type_str;
 }
-
+#ifndef __DEBUG__
+void LOG::printLOG( const string &tagStr , const string &stateStr , const string &logStr ) { }
+void LOG::writeLOG( const string &tagStr , const string &stateStr , const string &logStr ) { }
+#else
 //--- Common ---//
 void LOG::printLOG( const string &tagStr , const string &stateStr , const string &logStr )
 {
@@ -328,7 +333,7 @@ void LOG::writeLOG( const string &tagStr , const string &stateStr , const string
         printLOG( "FILE" , "ERROR" , "Failed to open log file" );  
     
 }
-
+#endif
 int LOG::is_leap_year( int year )
 {
     if( ( (year%4 == 0) && (year%100 != 0) ) || (year%400 == 0) )

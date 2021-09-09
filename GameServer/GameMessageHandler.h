@@ -21,7 +21,7 @@ public:
     virtual void registerHandler(map<int, function<void(void **, void **)>> &h_map);
 
 private:
-    void createBasicGameObjects(RoomManager &manager, list<GameObject *> &basicObjList);
+    void createBasicGameObjects(RoomManager &manager, list<shared_ptr<GameObject>> &basicObjList);
 };
 
 #endif

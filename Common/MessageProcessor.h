@@ -5,74 +5,87 @@
 #include <memory>
 #include <functional>
 
+#include "Session.h"
 #include "MessageQueue.h"
 #include "TCP.h"
 #include "Debug.h"
 
 using namespace std;
 
-class MessageProcessor {
+class MessageProcessor
+{
 	MessageQueue &m_msgQ;
-	map<int , function<void(void**,void**)>> m_hMap;
-	
+	map<int, function<void(void **, void **)>> m_hMap;
+
 public:
 	//--- Constructor ---//
 	MessageProcessor() = default;
-	MessageProcessor( MessageQueue &queue )
-			: 	m_msgQ( queue )
+	MessageProcessor(MessageQueue &queue)
+		: m_msgQ(queue)
 	{
 		// init something //
 	}
-	
+
 	template <typename T>
-	void registerProcedure( T &obj )
+	void registerProcedure(T &obj)
 	{
-		obj.registerHandler( m_hMap );	
+		obj.registerHandler(m_hMap);
 	}
-	
-	void processMSG( void **inParams=nullptr , void **outParams=nullptr )
+
+	void processMSG(void **inParams = nullptr, void **outParams = nullptr)
 	{
 		unique_ptr<InputByteStream> ibstream;
 		Header header;
-		SessionManager *pSessionMgr = static_cast<SessionManager*>(inParams[0]);
-		list<RoomManager> *pRoomList = static_cast<list<RoomManager>*>(inParams[1]);
+		SessionManager *pSessionMgr = static_cast<SessionManager *>(inParams[0]);
+		list<RoomManager> *pRoomList = static_cast<list<RoomManager> *>(inParams[1]);
 
-		try {	
-			m_msgQ.dequeue( ibstream );
-			header.read( *ibstream );
+		try
+		{
+			m_msgQ.dequeue(ibstream);
+
+			header.read(*ibstream);
 			ibstream->reUse();
 
-			void *outparameters[] = { ibstream.get() };
+			void *outparameters[] = {ibstream.get()};
 			void **inparameters = inParams;
 
-			auto itr = m_hMap.find( header.func );
-			if( itr != m_hMap.end() )
+			auto itr = m_hMap.find(header.func);
+			if (itr != m_hMap.end())
 			{
-				itr->second( inparameters , outparameters );
+				itr->second(inparameters, outparameters);
 			}
 
 			//--- 요청에 대한 응답이 있는 경우 ---//
-			if( ibstream->getRemainLength() > 0 )
+			if (ibstream->getRemainLength() > 0)
 			{
-				TCP::send_packet( header.sessionId , *ibstream );
-				LOG::getInstance()->writeLOG( *ibstream , LOG::TYPE::SEND );			
+				Session *pSession = pSessionMgr->getSessionById(header.sessionId);
+				mutex *pMutex = pSession->getMutex();
+				if (pMutex != nullptr)
+				{
+					lock_guard<mutex> key(*pMutex);
+					TCP::send_packet(header.sessionId, *ibstream);
+				}
+
+				LOG::getInstance()->writeLOG(*ibstream, LOG::TYPE::SEND);
 			}
 		}
-		catch( Empty_Ex &e ) {
+		catch (Empty_Ex &e)
+		{
 		}
-		catch( TCP::Transmission_Ex &e ) {
+		catch (TCP::Transmission_Ex &e)
+		{
 		}
-		catch( TCP::TCP_Ex &e )
+		catch (TCP::TCP_Ex &e)
 		{
 			throw;
 		}
-		catch( out_of_range &e )
+		catch (out_of_range &e)
 		{
 		}
-
+		catch (Not_Found_Ex &e)
+		{
+		}
 	}
 };
-
-
 
 #endif

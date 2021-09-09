@@ -4,7 +4,7 @@
 #include "ObjectCreationRegistry.h"
 
 //--- 새로운 플레이어를 위한 GameObject 생성 및 GameObjectManager에 등록 ---//
-void GameMessageHandler::createBasicGameObjects(RoomManager &manager, list<GameObject *> &basicObjList)
+void GameMessageHandler::createBasicGameObjects(RoomManager &manager, list<shared_ptr<GameObject>> &basicObjList)
 {
     OutputByteStream obstream(TCP::MPS);
     InputByteStream ibstream(TCP::MPS);
@@ -94,20 +94,20 @@ void GameMessageHandler::resJoinGame(void **inParams, void **outParams)
         {
             cout << "resJoin" << endl;
         }
-        
+
         //--- 현재원 갱신 ---//
         room.presentMembers++;
-        list<string> fields = { "presentMembers " + std::to_string(room.presentMembers) };
-        pInstance->hmsetCommand( room.roomId , fields );
+        list<string> fields = {"presentMembers " + std::to_string(room.presentMembers)};
+        pInstance->hmsetCommand(room.roomId, fields);
 
         int index = 0;
-        for( auto &roomMgr : *pRoomList )
+        for (auto &roomMgr : *pRoomList)
         {
-            if( roomMgr.isEqual(room.roomId) )
+            if (roomMgr.isEqual(room.roomId))
                 break;
             index++;
         }
-        pInstance->lsetRoom( room , index );
+        pInstance->lsetRoom(room, index);
     }
     header.type = PACKET_TYPE::RES;
 
@@ -116,7 +116,7 @@ void GameMessageHandler::resJoinGame(void **inParams, void **outParams)
     //--- Replication 정보가 담긴 응답메시지 생성
     if (result)
     {
-        list<GameObject *> basicObjects;
+        list<shared_ptr<GameObject>> basicObjects;
         createBasicGameObjects(*pTargetRoom, basicObjects);
 
         for (auto obj : basicObjects)
@@ -132,7 +132,6 @@ void GameMessageHandler::resJoinGame(void **inParams, void **outParams)
         header.func = FUNCTION_CODE::RES_JOIN_GAME_FAIL;
         header.len = 0;
     }
-
     header.insert_front(obstream);
     *pPacket = obstream;
 }
@@ -186,20 +185,20 @@ void GameMessageHandler::resQuitGame(void **inParams, void **outParams)
                 break;
             }
         }
-        
+
         //--- 현재원 갱신 ---//
         room.presentMembers--;
-        list<string> fields = { "presentMembers " + std::to_string(room.presentMembers) };
-        pInstance->hmsetCommand( room.roomId , fields );
-        
+        list<string> fields = {"presentMembers " + std::to_string(room.presentMembers)};
+        pInstance->hmsetCommand(room.roomId, fields);
+
         int index = 0;
-        for( auto &roomMgr : *pRoomList )
+        for (auto &roomMgr : *pRoomList)
         {
-            if( roomMgr.isEqual(room.roomId) )
+            if (roomMgr.isEqual(room.roomId))
                 break;
             index++;
         }
-        pInstance->lsetRoom( room , index );
+        pInstance->lsetRoom(room, index);
 
         result = true;
     }
@@ -209,7 +208,7 @@ void GameMessageHandler::resQuitGame(void **inParams, void **outParams)
     if (result)
     {
         header.func = FUNCTION_CODE::RES_QUIT_GAME_SUCCESS;
-        header.len = obstream.getLength();
+        header.len = header.len;
     }
     else
     {
@@ -218,6 +217,8 @@ void GameMessageHandler::resQuitGame(void **inParams, void **outParams)
         header.len = 0;
     }
 
+    obstream.write(roomId);
+    obstream.write(userId);
     header.insert_front(obstream);
     *pPacket = obstream;
 }
@@ -276,7 +277,13 @@ void GameMessageHandler::chatBroadcast(void **inParams, void **outParams)
             uint sessionId = pSession->getSessionId();
             if (sessionId != senderId)
             {
-                TCP::send_packet(sessionId, *pPacket);
+                mutex *pMutex = pSession->getMutex();
+                if (pMutex != nullptr)
+                {
+                    lock_guard<mutex> key(*pMutex);
+                    TCP::send_packet(sessionId, *pPacket);
+                }
+
                 LOG::getInstance()->writeLOG(*pPacket, LOG::SEND);
             }
         }
@@ -311,5 +318,4 @@ void GameMessageHandler::registerHandler(map<int, function<void(void **, void **
                            {
                                this->bye(in, out);
                            }));
-
 }

@@ -80,7 +80,10 @@ const string UserRedis::hmgetCommand( const string &key , list<string> &fields )
         LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : " + result );
         LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + result );
     }
-    freeReplyObject(pReply);
+    
+    if( pReply != nullptr )
+        freeReplyObject(pReply);
+
 
     return result;
 }
@@ -111,7 +114,9 @@ void UserRedis::hmsetCommand( const string &key , list<string> &fields )
         LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd );
     }
 
-    freeReplyObject(pReply);
+    if( pReply != nullptr )
+        freeReplyObject(pReply);
+
 }
 
 void UserRedis::lsetCommand( const string &key , int index , const string &value )
@@ -137,7 +142,8 @@ void UserRedis::lsetCommand( const string &key , int index , const string &value
         LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : success" );
     }
 
-    freeReplyObject(pReply);
+    if( pReply != nullptr )
+        freeReplyObject(pReply);
 
 }
     
@@ -173,7 +179,9 @@ const list<string> UserRedis::lrangeCommand( const string &key , const string &b
         LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + " result(s)" );
     }
 
-    freeReplyObject(pReply);
+    if( pReply != nullptr )
+        freeReplyObject(pReply);
+
     
     return results;
 }
@@ -211,7 +219,10 @@ void UserRedis::lpushCommand( const string &key , list<string> &values )
         LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + " success");
         LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + " success" );
     }
-    freeReplyObject(pReply);
+
+    if( pReply != nullptr )
+        freeReplyObject(pReply);
+
 }
 
 void UserRedis::lpopCommand( const string &key )
@@ -440,7 +451,10 @@ void UserRedis::cleanAll()
     {
          keys.emplace_back( pReply->element[1]->element[i]->str );
     }
-    freeReplyObject(pReply);
+
+    if( pReply != nullptr )
+        freeReplyObject(pReply);
+
     string cmd = "del ";
 
     for( auto key : keys )
@@ -450,7 +464,10 @@ void UserRedis::cleanAll()
     }
 
     pReply = static_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
-    freeReplyObject(pReply);
+
+    if( pReply != nullptr )
+        freeReplyObject(pReply);
+
 }
 
 void UserRedis::getElement( string &element )

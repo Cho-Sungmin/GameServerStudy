@@ -18,7 +18,6 @@ enum ThreadState {
 
 class ThreadPool {
     int m_state = TERMINATED;
-    std::mutex m_mutex;
     std::vector<std::thread> m_pool;
     JobQueue *m_pJobQueue;
 
@@ -31,8 +30,24 @@ public:
         m_state = RUNNING;
         
         for( int i=0; i<n; ++i )
-            m_pool.emplace_back( [this]{ workerThread(); });
+            m_pool.emplace_back( [this]{ workerThread(); } );
 
+    }
+
+    void startThreads()
+    {
+        m_state = RUNNING;
+    }
+
+    void joinThreads()
+    {
+        for( auto &thread : m_pool )
+            thread.join();
+    }
+    
+    void stopThreads()
+    {
+        m_state = TERMINATED;
     }
 };
 #endif

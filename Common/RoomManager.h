@@ -10,9 +10,9 @@
 class RoomManager {
     Room m_roomInfo;
     GameObjectManager m_gameObjectMgr;
-    SessionManager m_sessionMgr;
 
 public:
+    SessionManager m_sessionMgr;
     ReplicationManager m_replicationMgr;
 
     //--- Constructor ---//
@@ -46,7 +46,7 @@ public:
         }
         catch( Not_Found_Ex e )
         {
-            cout << "deleteSession" << endl;
+            cout << "deleteSession() : session not found" << endl;
         }
     }
 
@@ -55,13 +55,10 @@ public:
         return m_sessionMgr.getSessionList();
     }
 
-    list<GameObject*> &getInvalidObjects()
-    { return m_replicationMgr.getInvalidObjects(); }
-
-    list<GameObject*> getGameObjects()
+    list<shared_ptr<GameObject>> getGameObjects()
     { return m_gameObjectMgr.getGameObjectAll(); }
 
-    GameObject *findGameObject( uint32_t objectId )
+    shared_ptr<GameObject> findGameObject( uint32_t objectId )
     {
         return m_gameObjectMgr.getGameObject( objectId );
     }

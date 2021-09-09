@@ -1,49 +1,63 @@
 #include "GameObjectManager.h"
 #include "Debug.h"
 
-uint32_t GameObjectManager::getObjectId( GameObject *pGameObject )
+uint32_t GameObjectManager::getObjectId(shared_ptr<GameObject> pGameObject)
 {
-    auto itr = m_idTable.find( pGameObject );
-    if( itr != m_idTable.end() )
+    lock_guard<mutex> key(m_mutex);
+    if (pGameObject == nullptr)
+        return 0;
+
+    auto itr = m_idTable.find(pGameObject);
+
+    if (itr != m_idTable.end())
         return itr->second;
-    else{
+    else
+    {
         return 0;
     }
 }
-GameObject *GameObjectManager::getGameObject( uint32_t objectId )
+
+shared_ptr<GameObject> GameObjectManager::getGameObject(uint32_t objectId)
 {
-    auto itr = m_objectTable.find( objectId );
-    if( itr != m_objectTable.end() )
+    lock_guard<mutex> key(m_mutex);
+    auto itr = m_objectTable.find(objectId);
+
+    if (itr != m_objectTable.end())
         return itr->second;
-    else{
+    else
+    {
         return nullptr;
     }
 }
 
-list<GameObject*> GameObjectManager::getGameObjectAll()
+list<shared_ptr<GameObject>> GameObjectManager::getGameObjectAll()
 {
-    list<GameObject*> results;
+    list<shared_ptr<GameObject>> results;
+    lock_guard<mutex> key(m_mutex);
 
-    for( auto row : m_objectTable )
+    for (auto row : m_objectTable)
     {
-        results.push_back( row.second );
+        results.push_back(row.second);
     }
+
     return results;
 }
 
-uint32_t GameObjectManager::addGameObject( GameObject *pGameObject )
+uint32_t GameObjectManager::addGameObject(shared_ptr<GameObject> pGameObject)
 {
     uint32_t objectId = m_nextObjectId;
+    lock_guard<mutex> key(m_mutex);
 
-    if( pGameObject == nullptr )
+    if (pGameObject == nullptr)
         return 0;
-    
-    m_objectTable[ m_nextObjectId ] = pGameObject;
-    m_idTable[ pGameObject ] = m_nextObjectId;
 
+    shared_ptr<GameObject> pointer = pGameObject;
+
+    m_objectTable[m_nextObjectId] = pointer;
+    m_idTable[pointer] = m_nextObjectId;
     m_nextObjectId++;
 
-    while( m_objectTable.find( m_nextObjectId ) != m_objectTable.end() )
+    while (m_objectTable.find(m_nextObjectId) != m_objectTable.end())
     {
         m_nextObjectId++;
     }
@@ -51,22 +65,29 @@ uint32_t GameObjectManager::addGameObject( GameObject *pGameObject )
     return objectId;
 }
 
-void GameObjectManager::removeGameObject( GameObject *pGameObject )
+void GameObjectManager::removeGameObject(shared_ptr<GameObject> pGameObject)
 {
-    if( pGameObject == nullptr )
-        return ;
+    lock_guard<mutex> key(m_mutex);
 
-    auto itr = m_idTable.find( pGameObject );
-    if( itr != m_idTable.end() )
+    if (pGameObject == nullptr)
     {
-        int key = itr->second;
+        return;
+    }
 
-        m_objectTable.erase( key );
-        m_idTable.erase( itr );  
+    auto itr = m_idTable.find(pGameObject);
+    if (itr != m_idTable.end())
+    {
+        int id = itr->second;
+        auto ptr = itr->first;
 
-        if( pGameObject != nullptr )
-            delete pGameObject;
-        
-        m_nextObjectId = key;
+        if (pGameObject != nullptr)
+        {
+            m_objectTable[id].reset();
+            ptr.reset();
+        }
+
+        m_objectTable.erase(id);
+        m_idTable.erase(itr);
+        m_nextObjectId = id;
     }
 }
