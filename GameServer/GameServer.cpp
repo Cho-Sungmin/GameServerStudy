@@ -66,7 +66,7 @@ void GameServer::handler(int event, int clntSocket)
 			m_msgHandler.inputHandler(clntSocket);
 			m_sessionMgr.refresh(clntSocket); // Reset timer
 			m_pJobQueue->enqueue([this]
-								 { processMSG(); });			 
+								 { processMSG(); });
 		}
 		catch (TCP::TCP_Ex &e)
 		{

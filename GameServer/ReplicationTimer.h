@@ -8,16 +8,17 @@
 #include "JobQueue.h"
 
 #include <list>
+#include <thread>
 
 class ReplicationTimer : public Timer
 {
 	int m_fd = -1;
 	RoomManager &m_roomMgr;
-	mutex m_mutex;
+	mutex *m_pMutexForTCP = nullptr;
 
 public:
 	static void handler(int signo, siginfo_t *pInfo, void *uc);
-	void sendReplicationReq(GameObject *pObj, Action action);
+	void sendReplicationReq(shared_ptr<GameObject> pObj, Action action);
 
 	//--- Constructor ---//
 	ReplicationTimer() = default;
@@ -42,50 +43,49 @@ public:
 	{
 		LOG::getInstance()->printLOG("DEBUG", "TIMER", "Replication timer(" + to_string(m_fd) + ") DESTROYED");
 	}
+
+	void setMutex(mutex *pMutex) { m_pMutexForTCP = pMutex; }
+	mutex *getMutex() { return &m_mutexForTimer; }
 };
 
 void ReplicationTimer::handler(int signo, siginfo_t *pInfo, void *uc)
 {
-	ReplicationTimer *pRepTimer = reinterpret_cast<ReplicationTimer *>(pInfo->si_value.sival_ptr);
+	ReplicationTimer *pRepTimer = static_cast<ReplicationTimer *>(pInfo->si_value.sival_ptr);
 
 	if (pRepTimer == nullptr)
 		return;
 
+	pRepTimer->m_mutexForTimer.lock();
 	RoomManager &roomMgr = pRepTimer->m_roomMgr;
-	list<GameObject *> gameObjects = roomMgr.getGameObjects();
-	list<GameObject *> &invalidObjects = roomMgr.getInvalidObjects();
+	list<shared_ptr<GameObject>> gameObjects = roomMgr.getGameObjects();
+	pRepTimer->m_mutexForTimer.unlock();
 
 	for (auto obj : gameObjects)
 	{
 		JobQueue::getInstance()->enqueue([pRepTimer, obj]
 										 { pRepTimer->sendReplicationReq(obj, Action::UPDATE); });
 	}
-
-	while( !invalidObjects.empty() )
-	{
-		GameObject *obj = invalidObjects.front();
-		JobQueue::getInstance()->enqueue([pRepTimer, obj]
-										 { pRepTimer->sendReplicationReq(obj, Action::DESTROY); });
-		invalidObjects.pop_front();
-	}
 }
 
-void ReplicationTimer::sendReplicationReq(GameObject *pObj, Action action)
+void ReplicationTimer::sendReplicationReq(shared_ptr<GameObject> pObj, Action action)
 {
 	InputByteStream ibstream(TCP::MPS);
 	OutputByteStream obstream(TCP::MPS);
+	ReplicationManager &replicationMgr = m_roomMgr.m_replicationMgr;
+
+	shared_ptr<GameObject> pObject = pObj;
 
 	switch (action)
+
 	{
 	case Action::UPDATE:
-		m_roomMgr.m_replicationMgr.replicateUpdate(obstream, pObj);
+		replicationMgr.replicateUpdate(obstream, pObject);
 		break;
 	case Action::DESTROY:
-		m_roomMgr.m_replicationMgr.replicateDestroy(obstream, pObj);
-		m_roomMgr.m_replicationMgr.getGameObjectMgr().removeGameObject(pObj);
+		replicationMgr.replicateDestroy(obstream, pObject);
 		break;
 	case Action::CREATE:
-		m_roomMgr.m_replicationMgr.replicateCreate(obstream, pObj);
+		replicationMgr.replicateCreate(obstream, pObject);
 		break;
 	default:
 		break;
@@ -103,14 +103,28 @@ void ReplicationTimer::sendReplicationReq(GameObject *pObj, Action action)
 
 	try
 	{
-		TCP::send_packet(m_fd, ibstream, true);
+		m_pMutexForTCP = m_roomMgr.m_sessionMgr.getSessionById(m_fd)->getMutex();
+		if (m_pMutexForTCP != nullptr)
+		{
+			lock_guard<mutex> key(*m_pMutexForTCP);
+			TCP::send_packet(m_fd, ibstream);
+		}
+
 		LOG::getInstance()->writeLOG(ibstream, LOG::TYPE::SEND);
 	}
 	catch (TCP::Connection_Ex &e)
 	{
 		asleep();
-	};
-	
+	}
+	catch (Not_Found_Ex &e)
+	{
+		m_pMutexForTCP = nullptr;
+	}
+	catch (std::logic_error &e)
+	{
+		std::cout << "Caught logic_error"
+				  << " meaning " << e.what() << '\n';
+	}
 }
 
 #endif

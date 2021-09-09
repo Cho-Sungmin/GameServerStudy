@@ -3,6 +3,7 @@
 
 #include <string>
 #include <list>
+#include <mutex>
 #include <algorithm>
 #include "Exception.h"
 
@@ -12,6 +13,8 @@ class Session;
 class SessionManager {
 
 	std::list<Session*>	m_sessionList = {};
+	std::mutex m_mutex;
+
 public:
 	SessionManager() = default;
 

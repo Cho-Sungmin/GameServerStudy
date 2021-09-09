@@ -9,7 +9,7 @@
 #include "InputByteStream.h"
 #include "OutputByteStream.h"
 
-#define MAX_LINE	200
+#define MAX_LINE	248
 
 using namespace std;
 

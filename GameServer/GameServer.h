@@ -40,6 +40,7 @@ public:
 
     ~GameServer()
     {
+        m_pThreadPool->stopThreads();
         m_sessionMgr.expireAll();
         m_pRedis->cleanAll();
         m_userDB.destroy();
@@ -52,6 +53,7 @@ public:
         initDB();
         EpollServer::initThreads();
         m_pThreadPool = new ThreadPool();
+        joinThreadPool();
     }
     virtual bool ready() override
     {
@@ -70,6 +72,12 @@ public:
     virtual void farewell(int expired_fd) override
     {
         EpollServer::farewell(expired_fd);
+    }
+
+    void joinThreadPool()
+    {
+        m_pJobQueue->getConditionVar()->notify_all();
+        m_pThreadPool->joinThreads();
     }
 
     void initDB();
