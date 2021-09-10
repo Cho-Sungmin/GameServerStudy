@@ -188,17 +188,34 @@ void GameMessageHandler::resQuitGame(void **inParams, void **outParams)
 
         //--- 현재원 갱신 ---//
         room.presentMembers--;
-        list<string> fields = {"presentMembers " + std::to_string(room.presentMembers)};
-        pInstance->hmsetCommand(room.roomId, fields);
 
-        int index = 0;
-        for (auto &roomMgr : *pRoomList)
+        if( room.presentMembers == 0 )
         {
-            if (roomMgr.isEqual(room.roomId))
-                break;
-            index++;
+            int index = 0;
+            for (auto &roomMgr : *pRoomList)
+            {
+                if (roomMgr.isEqual(room.roomId))
+                    break;
+                index++;
+            }
+            string roomStr = pInstance->lindexCommand("room_list" , index);
+            pInstance->lremCommand("room_list" , 0 , roomStr);
+            pInstance->delCommand(room.roomId);
         }
-        pInstance->lsetRoom(room, index);
+        else
+        {
+            list<string> fields = {"presentMembers " + std::to_string(room.presentMembers)};
+            pInstance->hmsetCommand(room.roomId, fields);
+
+            int index = 0;
+            for (auto &roomMgr : *pRoomList)
+            {
+                if (roomMgr.isEqual(room.roomId))
+                    break;
+                index++;
+            }
+            pInstance->lsetRoom(room, index);
+        }
 
         result = true;
     }
