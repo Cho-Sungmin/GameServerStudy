@@ -116,11 +116,36 @@ void UserRedis::hmsetCommand( const string &key , list<string> &fields )
 
     if( pReply != nullptr )
         freeReplyObject(pReply);
+}
+
+void UserRedis::delCommand( const string &key )
+{
+    assert( key != "" );
+
+    string cmd = "DEL " + key;
+    redisReply *pReply = static_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
+    
+    if ( pReply->type == REDIS_REPLY_ERROR ) 
+    {
+        LOG::getInstance()->printLOG( "REDIS" , "ERROR" , cmd + " : " + pReply->str );
+        LOG::getInstance()->writeLOG( "REDIS" , "ERROR" , cmd + " : " + pReply->str );
+        throw UserRedisException( cmd );
+    }
+    else
+    {
+        LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + " result(s)" );
+        LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + " result(s)" );
+    }
+
+    if( pReply != nullptr )
+        freeReplyObject(pReply);
 
 }
 
 void UserRedis::lsetCommand( const string &key , int index , const string &value )
 {
+    assert( key != "" );
+
     string cmd = "LSET " + key + " " + std::to_string(index) + " " + value;
     redisReply *pReply = static_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
 
@@ -251,6 +276,63 @@ void UserRedis::lpopCommand( const string &key )
         LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + pReply->str + " success" );
     }
 
+}
+const string UserRedis::lindexCommand( const string &key , int index )
+{
+    string cmd = "LINDEX " + key + " " + to_string(index);
+    redisReply *pReply = static_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
+    string resultStr = "";
+
+    if( m_pContext->err != 0 )
+    {
+        LOG::getInstance()->printLOG( "REDIS" , "ERROR" , cmd + " : " + m_pContext->errstr );
+        LOG::getInstance()->writeLOG( "REDIS" , "ERROR" , cmd + " : " + m_pContext->errstr );
+        throw UserRedisException( cmd );
+    }
+    if ( pReply->type == REDIS_REPLY_ERROR ) 
+    {
+        LOG::getInstance()->printLOG( "REDIS" , "ERROR" , cmd + " : " + pReply->str );
+        LOG::getInstance()->writeLOG( "REDIS" , "ERROR" , cmd + " : " + pReply->str );
+        throw UserRedisException( cmd );
+    }
+    else
+    {
+        resultStr = pReply->str;
+        LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : " + pReply->str );
+        LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + pReply->str );
+    }
+
+    if( pReply != nullptr )
+        freeReplyObject(pReply);
+
+    return resultStr;
+}
+
+void UserRedis::lremCommand( const string &key , int count , const string &value )
+{
+    string cmd = "LREM " + key + " " + to_string(count) + " " + value;
+    redisReply *pReply = static_cast<redisReply*>(redisCommand( m_pContext , cmd.c_str() ));
+
+    if( m_pContext->err != 0 )
+    {
+        LOG::getInstance()->printLOG( "REDIS" , "ERROR" , cmd + " : " + m_pContext->errstr );
+        LOG::getInstance()->writeLOG( "REDIS" , "ERROR" , cmd + " : " + m_pContext->errstr );
+        throw UserRedisException( cmd );
+    }
+    if ( pReply->type == REDIS_REPLY_ERROR ) 
+    {
+        LOG::getInstance()->printLOG( "REDIS" , "ERROR" , cmd + " : " + pReply->str );
+        LOG::getInstance()->writeLOG( "REDIS" , "ERROR" , cmd + " : " + pReply->str );
+        throw UserRedisException( cmd );
+    }
+    else
+    {
+        LOG::getInstance()->printLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + " success" );
+        LOG::getInstance()->writeLOG( "REDIS" , "OK" , cmd + " : " + to_string(pReply->integer) + "success" );
+    }
+
+    if( pReply != nullptr )
+        freeReplyObject(pReply);
 }
 
 void UserRedis::lsetRoom( const Room &room , int index )

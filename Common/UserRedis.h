@@ -45,12 +45,17 @@ public:
     void connect();
     void disconnect();
 
-    void lsetCommand( const string &key , int index , const string &value );
-    const list<string> lrangeCommand( const string &key , const string &begin , const string &end );
     const string hmgetCommand( const string &key , list<string> &fields );
     void hmsetCommand( const string &key , list<string> &fields );
+    void delCommand( const string &key );
+    
+    void lsetCommand( const string &key , int index , const string &value );
+    const list<string> lrangeCommand( const string &key , const string &begin , const string &end );
     void lpushCommand( const string &key , list<string> &values );
     void lpopCommand( const string &key );
+    const string lindexCommand( const string &key , int index );
+    void lremCommand( const string &key , int count , const string &value );
+
 
     const list<Room> lrangeRoomList();
     void hmsetUserInfo( const UserInfo &data );
